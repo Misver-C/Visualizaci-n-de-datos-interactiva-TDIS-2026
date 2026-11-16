@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Condiciones del Barrio Puerto - Valparaíso</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="main-container">
+        <!-- Encabezado general -->
+        <header class="site-header">
+            <h1 class="main-title">Condiciones del Barrio Puerto</h1>
+            <p class="main-description">
+                Visualización interactiva sobre los factores que inciden y dificultan el tránsito peatonal 
+                por las calles del Barrio Puerto de Valparaíso.
+            </p>
+
+            <!-- Selector de categorías de condiciones -->
+            <nav class="categories-nav">
+                <button class="category-btn active" data-category="fisicas" id="btn-fisicas" aria-label="Condiciones Físicas">
+                    <div class="category-icon-wrapper">
+                        <!-- Icono Físicas (Herida / Dolor) -->
+                        <svg viewBox="0 0 64 64" class="cat-icon" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="28" cy="18" r="7"/>
+                            <path d="M28 25v16"/>
+                            <path d="M20 45l8-4 8 4"/>
+                            <path d="M20 32l8-3 8 3"/>
+                            <path d="M42 22l4 5-3 2 5 6" stroke-width="2"/>
+                            <path d="M48 20l2 2m-6 10l3 2" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <span class="category-name">Físicas</span>
+                </button>
+
+                <button class="category-btn disabled" data-category="perceptivas" id="btn-perceptivas" aria-label="Condiciones Perceptivas" title="Próximamente">
+                    <div class="category-icon-wrapper">
+                        <!-- Icono Perceptivas (Cabeza con megáfono / idea) -->
+                        <svg viewBox="0 0 64 64" class="cat-icon" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 46h16a8 8 0 0 0 8-8v-6a14 14 0 0 0-28 0v8"/>
+                            <path d="M22 36l-8-4v-8l8-4"/>
+                            <circle cx="36" cy="24" r="4"/>
+                            <path d="M34 30h4"/>
+                        </svg>
+                    </div>
+                    <span class="category-name">Perceptivas</span>
+                </button>
+
+                <button class="category-btn disabled" data-category="sensoriales" id="btn-sensoriales" aria-label="Condiciones Sensoriales" title="Próximamente">
+                    <div class="category-icon-wrapper">
+                        <!-- Icono Sensoriales (Sentidos / Estímulos) -->
+                        <svg viewBox="0 0 64 64" class="cat-icon" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="32" cy="26" r="7"/>
+                            <path d="M20 46c0-6 5.5-10 12-10s12 4 12 10"/>
+                            <path d="M18 22l-4-2m4 10l-4 2m28-12l4-2m-4 10l4 2"/>
+                            <path d="M32 14v-4"/>
+                        </svg>
+                    </div>
+                    <span class="category-name">Sensoriales</span>
+                </button>
+            </nav>
+
+            <p class="category-definition" id="category-definition">
+                Refieren a los obstáculos que se materializan físicamente en el entorno y dificultan el paso, la estabilidad al caminar, riesgos de caída o lesión.
+            </p>
+        </header>
+
+        <!-- Vista 1: Listado de grietas horizontales -->
+        <main class="view-section" id="view-overview">
+            <div class="section-indicator">
+                <div class="mini-icon-circle">
+                    <svg viewBox="0 0 64 64" class="mini-icon" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="28" cy="18" r="7"/>
+                        <path d="M28 25v16"/>
+                        <path d="M20 45l8-4 8 4"/>
+                        <path d="M20 32l8-3 8 3"/>
+                        <path d="M42 22l4 5-3 2 5 6"/>
+                    </svg>
+                </div>
+                <h2 class="section-title">Condiciones Físicas</h2>
+            </div>
+
+            <!-- Contenedor donde se generan dinámicamente las barras con aspecto de grieta -->
+            <div class="cracks-container" id="cracks-container">
+                <!-- Se poblará vía script.js -->
+            </div>
+        </main>
+
+        <!-- Vista 2: Detalle al hacer clic en una calle -->
+        <section class="view-section detail-view hidden" id="view-detail">
+            <!-- Círculo decorativo de fondo como en el wireframe 5 -->
+            <div class="bg-decorative-circle"></div>
+
+            <div class="detail-top-bar">
+                <div class="section-indicator">
+                    <div class="mini-icon-circle">
+                        <svg viewBox="0 0 64 64" class="mini-icon" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="28" cy="18" r="7"/>
+                            <path d="M28 25v16"/>
+                            <path d="M20 45l8-4 8 4"/>
+                            <path d="M20 32l8-3 8 3"/>
+                            <path d="M42 22l4 5-3 2 5 6"/>
+                        </svg>
+                    </div>
+                    <h2 class="section-title">Condiciones Físicas</h2>
+                </div>
+                <button class="btn-back" id="btn-back-overview" title="Volver a todas las calles">
+                    ← Volver al listado
+                </button>
+            </div>
+
+            <!-- Lista de ítems físicos detectados en esta calle -->
+            <div class="detail-breakdown" id="detail-breakdown">
+                <!-- Se llena con script.js -->
+            </div>
+
+            <!-- Gran barra destacada de la calle seleccionada -->
+            <div class="detail-crack-wrapper" id="detail-crack-wrapper">
+                <div class="detail-crack-bar" id="detail-crack-bar">
+                    <span class="detail-street-title" id="detail-street-title">Blanco - 17.8%</span>
+                </div>
+                <!-- Barra inferior de dificultad segmentada (Verde / Amarillo / Rojo) -->
+                <div class="difficulty-bar" id="detail-difficulty-bar"></div>
+            </div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

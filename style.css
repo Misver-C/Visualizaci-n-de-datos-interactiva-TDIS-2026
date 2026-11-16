@@ -1,0 +1,389 @@
+/* Reset y base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #ffffff;
+    color: #1a1a1a;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+}
+
+.main-container {
+    width: 100%;
+    max-width: 1280px;
+    padding: 40px 24px 80px 24px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* =========================================
+   Header y Navegación de Categorías
+   ========================================= */
+.site-header {
+    text-align: center;
+    margin-bottom: 50px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.main-title {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #0f172a;
+    margin-bottom: 16px;
+}
+
+.main-description {
+    max-width: 680px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #334155;
+    margin-bottom: 36px;
+}
+
+/* Selector circular de condiciones */
+.categories-nav {
+    display: flex;
+    justify-content: center;
+    gap: 42px;
+    margin-bottom: 24px;
+}
+
+.category-btn {
+    background: none;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.category-icon-wrapper {
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    background-color: #d1d9e2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #334155;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.cat-icon {
+    width: 44px;
+    height: 44px;
+}
+
+.category-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+/* Estado activo (Físicas) con sombra oscura como en el wireframe */
+.category-btn.active .category-icon-wrapper {
+    background-color: #475569;
+    color: #ffffff;
+    box-shadow: 6px 6px 0px #94a3b8;
+    transform: translate(-3px, -3px);
+}
+
+.category-btn.disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.category-definition {
+    max-width: 520px;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: #475569;
+    text-align: center;
+    margin-top: 10px;
+}
+
+/* =========================================
+   Sección / Vistas
+   ========================================= */
+.view-section {
+    width: 100%;
+    transition: opacity 0.3s ease;
+}
+
+.view-section.hidden {
+    display: none;
+}
+
+.section-indicator {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-left: 8px;
+}
+
+.mini-icon-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: #d1d9e2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #334155;
+}
+
+.mini-icon {
+    width: 26px;
+    height: 26px;
+}
+
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+/* =========================================
+   Grietas / Barras de Calles (Vista 1)
+   ========================================= */
+.cracks-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.crack-row {
+    position: relative;
+    width: 100%;
+    background-color: #c9d3dc;
+    cursor: pointer;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: transform 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+                box-shadow 0.22s ease,
+                background-color 0.2s ease;
+    user-select: none;
+    /* Efecto leve de grieta / quiebre en extremos y bordes */
+    clip-path: polygon(
+        0% 0%,
+        12% 1.5px,
+        34% 0px,
+        58% 2px,
+        82% 0px,
+        100% 1px,
+        100% calc(100% - 1.5px),
+        88% 100%,
+        63% calc(100% - 1px),
+        37% 100%,
+        15% calc(100% - 2px),
+        0% 100%
+    );
+}
+
+/* Quiebres alternos en filas pares para apariencia orgánica de grietas */
+.crack-row:nth-child(even) {
+    clip-path: polygon(
+        0% 1.5px,
+        18% 0px,
+        42% 2px,
+        71% 0px,
+        91% 1.5px,
+        100% 0px,
+        100% 100%,
+        79% calc(100% - 2px),
+        52% 100%,
+        24% calc(100% - 1px),
+        8% 100%,
+        0% calc(100% - 1.5px)
+    );
+}
+
+.crack-row:hover {
+    transform: scaleY(1.08) scaleX(1.003);
+    background-color: #bdc9d4;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+    z-index: 5;
+}
+
+.crack-content {
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+.street-label {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+    pointer-events: none;
+}
+
+/* Barra inferior de dificultad segmentada (Verde, Amarillo, Rojo) */
+.difficulty-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    display: flex;
+    opacity: 0;
+    transform: translateY(100%);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.crack-row:hover .difficulty-bar {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.segment-green {
+    background-color: #68d343; /* Verde vibrante */
+    height: 100%;
+}
+
+.segment-yellow {
+    background-color: #f6cf3e; /* Amarillo cálido */
+    height: 100%;
+}
+
+.segment-red {
+    background-color: #e0441a; /* Rojo / Naranja rojizo */
+    height: 100%;
+}
+
+/* =========================================
+   Vista 2: Detalle de Calle Seleccionada
+   ========================================= */
+.detail-view {
+    position: relative;
+    min-height: 480px;
+    padding-top: 10px;
+}
+
+/* Círculo decorativo de fondo a la derecha */
+.bg-decorative-circle {
+    position: absolute;
+    right: -100px;
+    top: 30px;
+    width: 520px;
+    height: 520px;
+    border-radius: 50%;
+    background-color: #d8e1e8;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.85;
+}
+
+.detail-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    margin-bottom: 24px;
+}
+
+.btn-back {
+    background-color: #0f172a;
+    color: #ffffff;
+    border: none;
+    padding: 8px 18px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.btn-back:hover {
+    background-color: #334155;
+    transform: translateX(-2px);
+}
+
+/* Lista desglosada con viñetas */
+.detail-breakdown {
+    position: relative;
+    z-index: 2;
+    margin-bottom: 80px;
+    padding-left: 20px;
+}
+
+.detail-breakdown ul {
+    list-style-type: disc;
+    margin-left: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detail-breakdown li {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+/* Gran barra destacada de la calle seleccionada */
+.detail-crack-wrapper {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    overflow: hidden;
+    clip-path: polygon(
+        0% 0%,
+        15% 2px,
+        45% 0px,
+        75% 2px,
+        100% 0px,
+        100% 100%,
+        80% calc(100% - 2px),
+        50% 100%,
+        20% calc(100% - 2px),
+        0% 100%
+    );
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.detail-crack-bar {
+    width: 100%;
+    min-height: 90px;
+    display: flex;
+    align-items: center;
+    padding: 0 36px;
+    transition: background-color 0.3s ease;
+}
+
+.detail-street-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    letter-spacing: -0.01em;
+}
+
+.detail-view .difficulty-bar {
+    opacity: 1;
+    transform: translateY(0);
+    height: 8px;
+}
