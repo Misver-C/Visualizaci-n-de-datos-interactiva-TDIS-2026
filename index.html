@@ -10,20 +10,22 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="main-container">
-        <!-- Encabezado general -->
-        <header class="site-header">
+
+    <!-- ========================================================
+         PANTALLA 1: Selección de Condición (Portada interactiva)
+         ======================================================== -->
+    <section class="screen screen-1" id="screen-1">
+        <div class="screen-content intro-content">
             <h1 class="main-title">Condiciones del Barrio Puerto</h1>
             <p class="main-description">
-                Visualización interactiva sobre los factores que inciden y dificultan el tránsito peatonal 
-                por las calles del Barrio Puerto de Valparaíso.
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
             </p>
 
-            <!-- Selector de categorías de condiciones -->
+            <!-- Tres opciones de condiciones con iconos iguales en estado de reposo -->
             <nav class="categories-nav">
-                <button class="category-btn active" data-category="fisicas" id="btn-fisicas" aria-label="Condiciones Físicas">
-                    <div class="category-icon-wrapper">
-                        <!-- Icono Físicas (Herida / Dolor) -->
+                <!-- Opción 1: Físicas -->
+                <button class="category-btn" data-category="fisicas" id="btn-cat-fisicas" aria-label="Condiciones Físicas">
+                    <div class="category-icon-wrapper cartoon-hoverable">
                         <svg viewBox="0 0 64 64" class="cat-icon" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="28" cy="18" r="7"/>
                             <path d="M28 25v16"/>
@@ -36,9 +38,9 @@
                     <span class="category-name">Físicas</span>
                 </button>
 
-                <button class="category-btn disabled" data-category="perceptivas" id="btn-perceptivas" aria-label="Condiciones Perceptivas" title="Próximamente">
-                    <div class="category-icon-wrapper">
-                        <!-- Icono Perceptivas (Cabeza con megáfono / idea) -->
+                <!-- Opción 2: Perceptivas -->
+                <button class="category-btn" data-category="perceptivas" id="btn-cat-perceptivas" aria-label="Condiciones Perceptivas">
+                    <div class="category-icon-wrapper cartoon-hoverable">
                         <svg viewBox="0 0 64 64" class="cat-icon" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M22 46h16a8 8 0 0 0 8-8v-6a14 14 0 0 0-28 0v8"/>
                             <path d="M22 36l-8-4v-8l8-4"/>
@@ -49,9 +51,9 @@
                     <span class="category-name">Perceptivas</span>
                 </button>
 
-                <button class="category-btn disabled" data-category="sensoriales" id="btn-sensoriales" aria-label="Condiciones Sensoriales" title="Próximamente">
-                    <div class="category-icon-wrapper">
-                        <!-- Icono Sensoriales (Sentidos / Estímulos) -->
+                <!-- Opción 3: Sensoriales -->
+                <button class="category-btn" data-category="sensoriales" id="btn-cat-sensoriales" aria-label="Condiciones Sensoriales">
+                    <div class="category-icon-wrapper cartoon-hoverable">
                         <svg viewBox="0 0 64 64" class="cat-icon" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="32" cy="26" r="7"/>
                             <path d="M20 46c0-6 5.5-10 12-10s12 4 12 10"/>
@@ -63,38 +65,20 @@
                 </button>
             </nav>
 
-            <p class="category-definition" id="category-definition">
-                Refieren a los obstáculos que se materializan físicamente en el entorno y dificultan el paso, la estabilidad al caminar, riesgos de caída o lesión.
-            </p>
-        </header>
-
-        <!-- Vista 1: Listado de grietas horizontales -->
-        <main class="view-section" id="view-overview">
-            <div class="section-indicator">
-                <div class="mini-icon-circle">
-                    <svg viewBox="0 0 64 64" class="mini-icon" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="28" cy="18" r="7"/>
-                        <path d="M28 25v16"/>
-                        <path d="M20 45l8-4 8 4"/>
-                        <path d="M20 32l8-3 8 3"/>
-                        <path d="M42 22l4 5-3 2 5 6"/>
-                    </svg>
-                </div>
-                <h2 class="section-title">Condiciones Físicas</h2>
+            <!-- Texto descriptivo que se activa con el hover / interacción -->
+            <div class="category-description-box" id="category-description-box">
+                <p id="category-description-text"></p>
             </div>
+        </div>
+    </section>
 
-            <!-- Contenedor donde se generan dinámicamente las barras con aspecto de grieta -->
-            <div class="cracks-container" id="cracks-container">
-                <!-- Se poblará vía script.js -->
-            </div>
-        </main>
-
-        <!-- Vista 2: Detalle al hacer clic en una calle -->
-        <section class="view-section detail-view hidden" id="view-detail">
-            <!-- Círculo decorativo de fondo como en el wireframe 5 -->
-            <div class="bg-decorative-circle"></div>
-
-            <div class="detail-top-bar">
+    <!-- ========================================================
+         PANTALLA 2: Vista de líneas con datos (Grietas procedurales)
+         ======================================================== -->
+    <section class="screen screen-2" id="screen-2">
+        <div class="screen-content cracks-view-content">
+            <!-- Barra superior de navegación / indicador -->
+            <div class="screen-2-header">
                 <div class="section-indicator">
                     <div class="mini-icon-circle">
                         <svg viewBox="0 0 64 64" class="mini-icon" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -107,25 +91,61 @@
                     </div>
                     <h2 class="section-title">Condiciones Físicas</h2>
                 </div>
-                <button class="btn-back" id="btn-back-overview" title="Volver a todas las calles">
-                    ← Volver al listado
+                <button class="btn-return-screen1 cartoon-hoverable" id="btn-return-screen1" title="Subir a selección">
+                    ↑ Cambiar Condición
                 </button>
             </div>
 
-            <!-- Lista de ítems físicos detectados en esta calle -->
-            <div class="detail-breakdown" id="detail-breakdown">
-                <!-- Se llena con script.js -->
+            <!-- Contenedor donde se generan las grietas aleatorias -->
+            <div class="cracks-container" id="cracks-container">
+                <!-- Generado dinámicamente con JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- ========================================================
+         PANTALLA 3: Pantalla con datos completos de la calle seleccionada
+         (Transición desde abajo hacia arriba y salida rápida hacia la derecha)
+         ======================================================== -->
+    <div class="screen-3-modal" id="screen-3-modal" aria-hidden="true">
+        <!-- Círculo decorativo de fondo -->
+        <div class="bg-decorative-circle"></div>
+
+        <div class="screen-3-container">
+            <div class="detail-header-row">
+                <div class="section-indicator">
+                    <div class="mini-icon-circle">
+                        <svg viewBox="0 0 64 64" class="mini-icon" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="28" cy="18" r="7"/>
+                            <path d="M28 25v16"/>
+                            <path d="M20 45l8-4 8 4"/>
+                            <path d="M20 32l8-3 8 3"/>
+                            <path d="M42 22l4 5-3 2 5 6"/>
+                        </svg>
+                    </div>
+                    <h2 class="section-title">Condiciones Físicas</h2>
+                </div>
+
+                <!-- Botón para cerrar y volver a Pantalla 2 (salida a la derecha) -->
+                <button class="btn-close-modal cartoon-hoverable" id="btn-close-modal" aria-label="Cerrar detalle">
+                    ✕ Cerrar
+                </button>
             </div>
 
-            <!-- Gran barra destacada de la calle seleccionada -->
+            <!-- Lista desglosada con viñetas -->
+            <div class="detail-breakdown" id="detail-breakdown">
+                <!-- Se inyecta dinámicamente -->
+            </div>
+
+            <!-- Gran franja de la calle seleccionada -->
             <div class="detail-crack-wrapper" id="detail-crack-wrapper">
                 <div class="detail-crack-bar" id="detail-crack-bar">
                     <span class="detail-street-title" id="detail-street-title">Blanco - 17.8%</span>
                 </div>
-                <!-- Barra inferior de dificultad segmentada (Verde / Amarillo / Rojo) -->
+                <!-- Barra de dificultad segmentada -->
                 <div class="difficulty-bar" id="detail-difficulty-bar"></div>
             </div>
-        </section>
+        </div>
     </div>
 
     <script src="script.js"></script>

@@ -1,63 +1,92 @@
-/* Reset y base */
+/* ========================================================
+   RESET Y BASE
+   ======================================================== */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+html {
+    scroll-behavior: auto; /* El scroll suave personalizado se controla vía JS */
+}
+
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background-color: #ffffff;
     color: #1a1a1a;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
     overflow-x: hidden;
 }
 
-.main-container {
-    width: 100%;
-    max-width: 1280px;
-    padding: 40px 24px 80px 24px;
-    display: flex;
-    flex-direction: column;
-    position: relative;
+/* ========================================================
+   ESTILO CARTOON HOVER (Flotación + Sombra de caricatura)
+   ======================================================== */
+.cartoon-hoverable {
+    transition: transform 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+                box-shadow 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+                background-color 0.2s ease,
+                color 0.2s ease;
 }
 
-/* =========================================
-   Header y Navegación de Categorías
-   ========================================= */
-.site-header {
-    text-align: center;
-    margin-bottom: 50px;
+.cartoon-hoverable:hover {
+    transform: translate(-4px, -4px);
+    box-shadow: 6px 6px 0px #334155;
+}
+
+/* ========================================================
+   ESTRUCTURA DE PANTALLAS
+   ======================================================== */
+.screen {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    padding: 40px 24px 60px 24px;
+}
+
+.screen-content {
+    width: 100%;
+    max-width: 1200px;
     display: flex;
     flex-direction: column;
+}
+
+/* ========================================================
+   PANTALLA 1: PORTADA / SELECCIÓN DE CONDICIÓN
+   ======================================================== */
+.screen-1 {
     align-items: center;
 }
 
+.intro-content {
+    align-items: center;
+    text-align: center;
+    margin: auto 0;
+}
+
 .main-title {
-    font-size: 2rem;
+    font-size: 2.2rem;
     font-weight: 800;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
     color: #0f172a;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
 .main-description {
-    max-width: 680px;
-    font-size: 0.95rem;
-    line-height: 1.5;
-    color: #334155;
-    margin-bottom: 36px;
+    max-width: 720px;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: #475569;
+    margin-bottom: 50px;
 }
 
-/* Selector circular de condiciones */
+/* Selector circular de tres categorías */
 .categories-nav {
     display: flex;
     justify-content: center;
-    gap: 42px;
-    margin-bottom: 24px;
+    gap: 48px;
+    margin-bottom: 30px;
 }
 
 .category-btn {
@@ -66,80 +95,89 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     cursor: pointer;
-    transition: transform 0.2s ease, opacity 0.2s ease;
+    outline: none;
 }
 
 .category-icon-wrapper {
-    width: 82px;
-    height: 82px;
+    width: 90px;
+    height: 90px;
     border-radius: 50%;
     background-color: #d1d9e2;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #334155;
-    transition: all 0.25s ease;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.category-btn:hover .category-icon-wrapper {
+    background-color: #475569;
+    color: #ffffff;
 }
 
 .cat-icon {
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
 }
 
 .category-name {
-    font-size: 1rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: #0f172a;
 }
 
-/* Estado activo (Físicas) con sombra oscura como en el wireframe */
-.category-btn.active .category-icon-wrapper {
-    background-color: #475569;
-    color: #ffffff;
-    box-shadow: 6px 6px 0px #94a3b8;
-    transform: translate(-3px, -3px);
+/* Caja de texto descriptivo que reacciona al hover */
+.category-description-box {
+    min-height: 60px;
+    max-width: 540px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.category-btn.disabled {
-    cursor: not-allowed;
-    opacity: 0.65;
-}
-
-.category-definition {
-    max-width: 520px;
-    font-size: 0.88rem;
-    line-height: 1.45;
+#category-description-text {
+    font-size: 0.95rem;
+    line-height: 1.5;
     color: #475569;
-    text-align: center;
-    margin-top: 10px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
-/* =========================================
-   Sección / Vistas
-   ========================================= */
-.view-section {
+#category-description-text.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ========================================================
+   PANTALLA 2: LÍNEAS / GRIETAS CON DATOS
+   ======================================================== */
+.screen-2 {
+    background-color: #ffffff;
+    border-top: 1px solid #e2e8f0;
+}
+
+.cracks-view-content {
     width: 100%;
-    transition: opacity 0.3s ease;
 }
 
-.view-section.hidden {
-    display: none;
+.screen-2-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
 }
 
 .section-indicator {
     display: flex;
     align-items: center;
     gap: 16px;
-    margin-bottom: 28px;
-    padding-left: 8px;
 }
 
 .mini-icon-circle {
-    width: 48px;
-    height: 48px;
+    width: 46px;
+    height: 46px;
     border-radius: 50%;
     background-color: #d1d9e2;
     display: flex;
@@ -154,18 +192,32 @@ body {
 }
 
 .section-title {
-    font-size: 1.25rem;
-    font-weight: 700;
+    font-size: 1.35rem;
+    font-weight: 800;
     color: #0f172a;
 }
 
-/* =========================================
-   Grietas / Barras de Calles (Vista 1)
-   ========================================= */
+.btn-return-screen1 {
+    background-color: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    padding: 8px 18px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn-return-screen1:hover {
+    background-color: #e2e8f0;
+    color: #0f172a;
+}
+
+/* Contenedor de Grietas */
 .cracks-container {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
     width: 100%;
 }
 
@@ -178,54 +230,22 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    transition: transform 0.22s cubic-bezier(0.2, 0, 0.2, 1),
-                box-shadow 0.22s ease,
-                background-color 0.2s ease;
     user-select: none;
-    /* Efecto leve de grieta / quiebre en extremos y bordes */
-    clip-path: polygon(
-        0% 0%,
-        12% 1.5px,
-        34% 0px,
-        58% 2px,
-        82% 0px,
-        100% 1px,
-        100% calc(100% - 1.5px),
-        88% 100%,
-        63% calc(100% - 1px),
-        37% 100%,
-        15% calc(100% - 2px),
-        0% 100%
-    );
+    transition: transform 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+                box-shadow 0.22s cubic-bezier(0.2, 0, 0.2, 1),
+                background-color 0.2s ease;
 }
 
-/* Quiebres alternos en filas pares para apariencia orgánica de grietas */
-.crack-row:nth-child(even) {
-    clip-path: polygon(
-        0% 1.5px,
-        18% 0px,
-        42% 2px,
-        71% 0px,
-        91% 1.5px,
-        100% 0px,
-        100% 100%,
-        79% calc(100% - 2px),
-        52% 100%,
-        24% calc(100% - 1px),
-        8% 100%,
-        0% calc(100% - 1.5px)
-    );
-}
-
+/* Hover de caricatura para las líneas/grietas */
 .crack-row:hover {
-    transform: scaleY(1.08) scaleX(1.003);
-    background-color: #bdc9d4;
-    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
-    z-index: 5;
+    transform: translate(-3px, -3px) scale(1.002);
+    box-shadow: 6px 6px 0px #334155;
+    background-color: #bac7d2;
+    z-index: 10;
 }
 
 .crack-content {
-    padding: 0 28px;
+    padding: 0 32px;
     display: flex;
     align-items: center;
     width: 100%;
@@ -233,20 +253,20 @@ body {
 }
 
 .street-label {
-    font-size: 1.15rem;
+    font-size: 1.18rem;
     font-weight: 800;
     color: #0f172a;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
     pointer-events: none;
 }
 
-/* Barra inferior de dificultad segmentada (Verde, Amarillo, Rojo) */
+/* Barra inferior de dificultad segmentada */
 .difficulty-bar {
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 6px;
+    height: 7px;
     display: flex;
     opacity: 0;
     transform: translateY(100%);
@@ -259,36 +279,75 @@ body {
 }
 
 .segment-green {
-    background-color: #68d343; /* Verde vibrante */
+    background-color: #68d343;
     height: 100%;
 }
 
 .segment-yellow {
-    background-color: #f6cf3e; /* Amarillo cálido */
+    background-color: #f6cf3e;
     height: 100%;
 }
 
 .segment-red {
-    background-color: #e0441a; /* Rojo / Naranja rojizo */
+    background-color: #e0441a;
     height: 100%;
 }
 
-/* =========================================
-   Vista 2: Detalle de Calle Seleccionada
-   ========================================= */
-.detail-view {
-    position: relative;
-    min-height: 480px;
-    padding-top: 10px;
+/* ========================================================
+   PANTALLA 3: DETALLE COMPLETO (MODAL / OVERLAY)
+   ======================================================== */
+.screen-3-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #ffffff;
+    z-index: 999;
+    display: flex;
+    justify-content: center;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 40px 24px 60px 24px;
+
+    /* Estado inicial oculto hacia abajo */
+    transform: translateY(100%);
+    pointer-events: none;
+    visibility: hidden;
 }
 
-/* Círculo decorativo de fondo a la derecha */
+/* Animación de apertura: desde abajo hacia arriba, rápido al inicio con final suave (1 segundo) */
+.screen-3-modal.entering {
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+    transition: transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Animación de cierre: rápida hacia la derecha sin final suave (lineal / ease-in) */
+.screen-3-modal.exiting {
+    visibility: visible;
+    pointer-events: none;
+    transform: translateX(100%);
+    transition: transform 0.35s ease-in;
+}
+
+.screen-3-container {
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 2;
+}
+
+/* Círculo decorativo de fondo grande a la derecha */
 .bg-decorative-circle {
     position: absolute;
-    right: -100px;
-    top: 30px;
-    width: 520px;
-    height: 520px;
+    right: -80px;
+    top: 40px;
+    width: 560px;
+    height: 560px;
     border-radius: 50%;
     background-color: #d8e1e8;
     z-index: 1;
@@ -296,38 +355,36 @@ body {
     opacity: 0.85;
 }
 
-.detail-top-bar {
+.detail-header-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 36px;
     position: relative;
     z-index: 2;
-    margin-bottom: 24px;
 }
 
-.btn-back {
+.btn-close-modal {
     background-color: #0f172a;
     color: #ffffff;
     border: none;
-    padding: 8px 18px;
-    font-size: 0.88rem;
-    font-weight: 600;
+    padding: 10px 22px;
+    font-size: 0.92rem;
+    font-weight: 700;
     border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.15s ease;
 }
 
-.btn-back:hover {
-    background-color: #334155;
-    transform: translateX(-2px);
+.btn-close-modal:hover {
+    background-color: #1e293b;
 }
 
-/* Lista desglosada con viñetas */
+/* Desglose de ítems físicos con viñetas */
 .detail-breakdown {
+    margin-bottom: 70px;
+    padding-left: 20px;
     position: relative;
     z-index: 2;
-    margin-bottom: 80px;
-    padding-left: 20px;
 }
 
 .detail-breakdown ul {
@@ -335,55 +392,57 @@ body {
     margin-left: 24px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
 }
 
 .detail-breakdown li {
-    font-size: 1.05rem;
-    font-weight: 600;
+    font-size: 1.15rem;
+    font-weight: 700;
     color: #0f172a;
 }
 
-/* Gran barra destacada de la calle seleccionada */
+/* Gran franja de la calle seleccionada */
 .detail-crack-wrapper {
     position: relative;
-    z-index: 2;
     width: 100%;
+    margin-top: auto;
+    margin-bottom: 40px;
     overflow: hidden;
     clip-path: polygon(
         0% 0%,
-        15% 2px,
-        45% 0px,
-        75% 2px,
-        100% 0px,
+        12% 2px,
+        38% 0px,
+        65% 3px,
+        88% 0px,
+        100% 2px,
         100% 100%,
-        80% calc(100% - 2px),
-        50% 100%,
-        20% calc(100% - 2px),
+        82% calc(100% - 2px),
+        54% 100%,
+        26% calc(100% - 3px),
         0% 100%
     );
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: 6px 6px 0px #334155;
 }
 
 .detail-crack-bar {
     width: 100%;
-    min-height: 90px;
+    min-height: 95px;
     display: flex;
     align-items: center;
-    padding: 0 36px;
+    padding: 0 40px;
     transition: background-color 0.3s ease;
 }
 
 .detail-street-title {
-    font-size: 1.8rem;
+    font-size: 2rem;
     font-weight: 800;
     color: #ffffff;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-    letter-spacing: -0.01em;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    letter-spacing: -0.015em;
 }
 
-.detail-view .difficulty-bar {
+.screen-3-modal .difficulty-bar {
     opacity: 1;
     transform: translateY(0);
-    height: 8px;
+    height: 9px;
 }
