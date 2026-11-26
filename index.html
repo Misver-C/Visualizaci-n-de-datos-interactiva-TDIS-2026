@@ -3,11 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bandas peatonales</title>
+    <title>Barrio de San Nicolás — Visualización 3D Interactiva</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <main id="scene-container" aria-label="Bandas peatonales"></main>
+    <!-- Lienzo 3D principal -->
+    <main id="scene-container" aria-label="Escena 3D interactiva del Barrio de San Nicolás"></main>
+
+    <!-- Capa de interfaz superpuesta (no interfiere con el raycasting 3D) -->
+    <div class="ui-overlay" id="ui-overlay">
+        <!-- Esquina superior izquierda: Identidad geográfica + Menú de filtros cromáticos -->
+        <aside class="top-left-hud" aria-label="Identificación geográfica y filtros cromáticos">
+            <header class="geo-identity">
+                <span class="geo-city">Buenos Aires</span>
+                <h1 class="geo-neighborhood">Barrio de San Nicolás</h1>
+            </header>
+
+            <section class="chromatic-filters" aria-label="Filtros por categoría cromática">
+                <span class="filters-heading">Categorías cromáticas</span>
+                <div class="filters-list" role="group" aria-label="Activar o desactivar categorías por color">
+                    <label class="filter-toggle" data-category="green">
+                        <input type="checkbox" id="filter-green" value="green" checked>
+                        <span class="filter-indicator indicator-green" aria-hidden="true"></span>
+                        <span class="filter-name">Verde</span>
+                        <span class="filter-switch" aria-hidden="true"></span>
+                    </label>
+
+                    <label class="filter-toggle" data-category="yellow">
+                        <input type="checkbox" id="filter-yellow" value="yellow" checked>
+                        <span class="filter-indicator indicator-yellow" aria-hidden="true"></span>
+                        <span class="filter-name">Amarillo</span>
+                        <span class="filter-switch" aria-hidden="true"></span>
+                    </label>
+
+                    <label class="filter-toggle" data-category="red">
+                        <input type="checkbox" id="filter-red" value="red" checked>
+                        <span class="filter-indicator indicator-red" aria-hidden="true"></span>
+                        <span class="filter-name">Rojo</span>
+                        <span class="filter-switch" aria-hidden="true"></span>
+                    </label>
+                </div>
+            </section>
+        </aside>
+
+        <!-- Lateral derecho: Panel de información dinámico contextual -->
+        <aside class="street-info-panel" id="street-info-panel" aria-hidden="true" aria-label="Información detallada de la calle seleccionada">
+            <header class="panel-header">
+                <div class="panel-header-top">
+                    <div class="panel-title-wrap">
+                        <div class="panel-section-badge" id="panel-active-tab-badge" data-active-tab="informacion">
+                            <span class="badge-dot" aria-hidden="true"></span>
+                            <span id="panel-active-tab-label">Información</span>
+                        </div>
+                        <h2 class="panel-street-name" id="panel-street-name">—</h2>
+                    </div>
+                    <button type="button" class="panel-close-btn" id="panel-close-btn" aria-label="Cerrar panel de información" title="Cerrar (Esc)">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Barra de distribución cromática segmentada -->
+                <div class="chromatic-distribution">
+                    <div class="distribution-bar" id="panel-distribution-bar" role="img" aria-label="Distribución porcentual de respuestas"></div>
+                    <div class="distribution-legend" id="panel-distribution-legend"></div>
+                </div>
+            </header>
+
+            <!-- Cuerpo desplazable del panel -->
+            <div class="panel-scroll-body" id="panel-scroll-body">
+                <!-- Sección 1: Datos cuantificables -->
+                <section class="panel-section" aria-labelledby="section-stats-title">
+                    <h3 class="section-title" id="section-stats-title">Participación y dificultad</h3>
+                    <div class="stats-rows" id="panel-difficulty-stats"></div>
+                </section>
+
+                <section class="panel-section" aria-labelledby="section-urban-title">
+                    <h3 class="section-title" id="section-urban-title">Aspectos urbanos</h3>
+                    <div class="stats-rows" id="panel-urban-stats"></div>
+                </section>
+
+                <!-- Sección 2: Comentarios y percepciones -->
+                <section class="panel-section" aria-labelledby="section-comments-neg-title">
+                    <div class="comments-block">
+                        <h3 class="section-title section-title-neg" id="section-comments-neg-title">
+                            <span class="title-dot dot-neg" aria-hidden="true"></span>
+                            Comentarios negativos
+                        </h3>
+                        <div class="comments-list" id="panel-comments-negative"></div>
+                    </div>
+
+                    <div class="comments-block comments-block-pos">
+                        <h3 class="section-title section-title-pos" id="section-comments-pos-title">
+                            <span class="title-dot dot-pos" aria-hidden="true"></span>
+                            Comentarios positivos
+                        </h3>
+                        <div class="comments-list" id="panel-comments-positive"></div>
+                    </div>
+                </section>
+
+                <!-- Sección 3: Datos secundarios (Otros aspectos y Emociones) -->
+                <section class="panel-section panel-section-secondary" aria-labelledby="section-aspects-title">
+                    <div class="secondary-group">
+                        <h4 class="secondary-title" id="section-aspects-title">Otros aspectos mencionados</h4>
+                        <div class="tags-container" id="panel-other-aspects"></div>
+                    </div>
+
+                    <div class="secondary-group">
+                        <h4 class="secondary-title" id="section-emotions-title">Emociones percibidas</h4>
+                        <div class="tags-container" id="panel-emotions"></div>
+                    </div>
+                </section>
+            </div>
+        </aside>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
     <script src="script.js"></script>
