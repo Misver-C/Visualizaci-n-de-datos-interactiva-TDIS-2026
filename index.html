@@ -15,11 +15,18 @@
 
     <!-- Capa de interfaz superpuesta (no interfiere con el raycasting 3D) -->
     <div class="ui-overlay" id="ui-overlay">
+        <!-- Botón flotante superior centrado para alternar entre modelos 3D -->
+        <div class="top-center-ModelSwitch">
+            <button type="button" class="model-switch-btn" id="model-switch-btn" aria-label="Alternar modelo 3D">
+                <span class="model-switch-label" id="model-switch-label">Modelo de Valparaíso</span>
+            </button>
+        </div>
+
         <!-- Esquina superior izquierda: Identidad geográfica + Menú de filtros cromáticos -->
         <aside class="top-left-hud" aria-label="Identificación geográfica y filtros cromáticos">
             <header class="geo-identity">
-                <span class="geo-city">Buenos Aires</span>
-                <h1 class="geo-neighborhood">Barrio de San Nicolás</h1>
+                <span class="geo-city" id="geo-city-label">Buenos Aires</span>
+                <h1 class="geo-neighborhood" id="geo-neighborhood-label">Barrio de San Nicolás</h1>
             </header>
 
             <section class="chromatic-filters" aria-label="Filtros por categoría cromática">

@@ -6,12 +6,12 @@
 
 const SCENE_CONFIG = {
     surface: {
-        width: 40,               // Proporción 4 (40 cm entre ejes extremos en X)
-        depth: 30,               // Proporción 3 (30 cm entre ejes extremos en Z)
-        columns: 4,              // 4 columnas entre las 5 bandas verticales
-        rows: 3,                 // 3 filas entre las 4 bandas horizontales
-        tabExtension: 2.6,       // Extensión perimetral de las bandas
-        gridColor: 0x4a4a4a,     // Color base de líneas de cuadrícula (#4a4a4a)
+        width: 40,
+        depth: 30,
+        columns: 4,
+        rows: 3,
+        tabExtension: 2.6,
+        gridColor: 0x4a4a4a,
         gridLineWidth: 0.12,
         baseColor: 0x15161a,
         baseOpacity: 0.85,
@@ -32,24 +32,26 @@ const SCENE_CONFIG = {
         initialAzimuthAngle: 0.50,
         minPolarAngle: 0.28,
         maxPolarAngle: 1.36,
-        autoRotateSpeed: 0.095,  // Rotación orbital lenta y continua (rad/s)
-        pauseDecelSpeed: 6.0,    // Desaceleración suave al activar o seleccionar una banda
-        resumeAccelSpeed: 2.2,   // Aceleración progresiva al finalizar la interacción
+        autoRotateSpeed: 0.095,
+        pauseDecelSpeed: 6.0,
+        resumeAccelSpeed: 2.2,
         dragSensitivity: 0.0065,
-        dampingFactor: 10.0
+        dampingFactor: 10.0,
+        transitionAscentDuration: 1.05,
+        transitionDescentDuration: 1.15
     },
     bandDefaults: {
         width: 2.1,
         thickness: 0.24,
-        maxElevation: 5.0,       // ~5 cm
+        maxElevation: 5.0,
         animationSpeed: 6.8,
-        returnDuration: 1.0,     // ~1 segundo de retorno al salir del hover
+        returnDuration: 1.0,
         maxLateralOffset: 1.4,
         lateralSensitivity: 0.42,
-        lengthSegments: 96,      // Alta resolución longitudinal para cruces e intersecciones
-        hitboxWidthRatio: 0.86,  // Hitbox ajustada para evitar activaciones involuntarias
+        lengthSegments: 96,
+        hitboxWidthRatio: 0.86,
         filterTransitionSpeed: 3.4,
-        silhouetteColor: 0x252830 // Silueta grisácea integrada con el fondo al desactivar filtro
+        silhouetteColor: 0x252830
     },
     chromatic: {
         minNormalizedIntensity: 0.24,
@@ -83,195 +85,53 @@ const SCENE_CONFIG = {
         hoverHeight: 1.30,
         separation: 0.22,
         textSize: 1.16,
-        hoverScale: 1.22,             // Ligero aumento de tamaño durante el hover (Sección 7)
-        orientationInDuration: 0.22,  // Giro hacia cámara en la fase inicial del hover
-        orientationOutDuration: 0.82, // Regreso progresivo a orientación acostada al salir
+        hoverScale: 1.22,
+        orientationInDuration: 0.22,
+        orientationOutDuration: 0.82,
         maxBloomIntensity: 0.40,
-        disabledTextColor: 0x5c6270   // Tono gris neutro cuando la banda está filtrada
+        disabledTextColor: 0x5c6270
     }
 };
 
 // ==========================================================
-// 2. BASE DE DATOS CROMÁTICA (16 REGISTROS INDIVIDUALES)
+// 2. DATOS DEL MODELO 1: BARRIO DE SAN NICOLÁS (BUENOS AIRES)
 // ==========================================================
 
-const INITIAL_RAW_RECORDS = [
+const BUENOS_AIRES_RAW_RECORDS = [
     // 4 Bandas Horizontales
-    {
-        id: "banda-uruguay",
-        type: "horizontal",
-        name: "Uruguay",
-        green: 6,
-        yellow: 4,
-        red: 1,
-        rowIndex: 0
-    },
-    {
-        id: "banda-talcahuano",
-        type: "horizontal",
-        name: "Talcahuano",
-        green: 17,
-        yellow: 4,
-        red: 2,
-        rowIndex: 1
-    },
-    {
-        id: "banda-libertad",
-        type: "horizontal",
-        name: "Libertad",
-        green: 18,
-        yellow: 5,
-        red: 0,
-        rowIndex: 2
-    },
-    {
-        id: "banda-cerrito",
-        type: "horizontal",
-        name: "Cerrito",
-        green: 8,
-        yellow: 10,
-        red: 3,
-        rowIndex: 3
-    },
+    { id: "banda-uruguay",    type: "horizontal", name: "Uruguay",    green: 6,  yellow: 4,  red: 1, rowIndex: 0 },
+    { id: "banda-talcahuano", type: "horizontal", name: "Talcahuano", green: 17, yellow: 4,  red: 2, rowIndex: 1 },
+    { id: "banda-libertad",   type: "horizontal", name: "Libertad",   green: 18, yellow: 5,  red: 0, rowIndex: 2 },
+    { id: "banda-cerrito",    type: "horizontal", name: "Cerrito",    green: 8,  yellow: 10, red: 3, rowIndex: 3 },
 
-    // 3 Intertramos Horizontales (almacenados en el motor de datos sin ocupar recuadros vacíos)
-    {
-        id: "intertramo-h-uruguay-talcahuano",
-        type: "intertramo_horizontal",
-        name: "Entre Uruguay y Talcahuano",
-        green: 1,
-        yellow: 1,
-        red: 0,
-        betweenRows: [0, 1]
-    },
-    {
-        id: "intertramo-h-talcahuano-libertad",
-        type: "intertramo_horizontal",
-        name: "Entre Talcahuano y Libertad",
-        green: 0,
-        yellow: 1,
-        red: 0,
-        betweenRows: [1, 2]
-    },
-    {
-        id: "intertramo-h-libertad-cerrito",
-        type: "intertramo_horizontal",
-        name: "Entre Libertad y Cerrito",
-        green: 1,
-        yellow: 1,
-        red: 0,
-        betweenRows: [2, 3]
-    },
+    // 3 Intertramos Horizontales
+    { id: "intertramo-h-uruguay-talcahuano",  type: "intertramo_horizontal", name: "Entre Uruguay y Talcahuano",  green: 1, yellow: 1, red: 0, betweenRows: [0, 1] },
+    { id: "intertramo-h-talcahuano-libertad", type: "intertramo_horizontal", name: "Entre Talcahuano y Libertad", green: 0, yellow: 1, red: 0, betweenRows: [1, 2] },
+    { id: "intertramo-h-libertad-cerrito",    type: "intertramo_horizontal", name: "Entre Libertad y Cerrito",    green: 1, yellow: 1, red: 0, betweenRows: [2, 3] },
 
     // 5 Bandas Verticales
-    {
-        id: "banda-av-corrientes",
-        type: "vertical",
-        name: "Av. Corrientes",
-        green: 5,
-        yellow: 4,
-        red: 3,
-        colIndex: 0
-    },
-    {
-        id: "banda-lavalle",
-        type: "vertical",
-        name: "Lavalle",
-        green: 3,
-        yellow: 5,
-        red: 2,
-        colIndex: 1
-    },
-    {
-        id: "banda-tucuman",
-        type: "vertical",
-        name: "Tucumán",
-        green: 8,
-        yellow: 1,
-        red: 0,
-        colIndex: 2
-    },
-    {
-        id: "banda-viamonte",
-        type: "vertical",
-        name: "Viamonte",
-        green: 4,
-        yellow: 3,
-        red: 0,
-        colIndex: 3
-    },
-    {
-        id: "banda-av-cordoba",
-        type: "vertical",
-        name: "Av. Córdoba",
-        green: 5,
-        yellow: 3,
-        red: 3,
-        colIndex: 4
-    },
+    { id: "banda-av-corrientes", type: "vertical", name: "Av. Corrientes", green: 5, yellow: 4, red: 3, colIndex: 0 },
+    { id: "banda-lavalle",       type: "vertical", name: "Lavalle",        green: 3, yellow: 5, red: 2, colIndex: 1 },
+    { id: "banda-tucuman",       type: "vertical", name: "Tucumán",        green: 8, yellow: 1, red: 0, colIndex: 2 },
+    { id: "banda-viamonte",      type: "vertical", name: "Viamonte",       green: 4, yellow: 3, red: 0, colIndex: 3 },
+    { id: "banda-av-cordoba",    type: "vertical", name: "Av. Córdoba",    green: 5, yellow: 3, red: 3, colIndex: 4 },
 
     // 3 Intertramos Verticales
-    {
-        id: "intertramo-v-corrientes-lavalle",
-        type: "intertramo_vertical",
-        name: "Entre Av. Corrientes y Lavalle",
-        green: 0,
-        yellow: 2,
-        red: 2,
-        betweenCols: [0, 1]
-    },
-    {
-        id: "intertramo-v-lavalle-tucuman",
-        type: "intertramo_vertical",
-        name: "Entre Lavalle y Tucumán",
-        green: 2,
-        yellow: 0,
-        red: 0,
-        betweenCols: [1, 2]
-    },
-    {
-        id: "intertramo-v-tucuman-viamonte",
-        type: "intertramo_vertical",
-        name: "Entre Tucumán y Viamonte",
-        green: 1,
-        yellow: 0,
-        red: 0,
-        betweenCols: [2, 3]
-    },
+    { id: "intertramo-v-corrientes-lavalle", type: "intertramo_vertical", name: "Entre Av. Corrientes y Lavalle", green: 0, yellow: 2, red: 2, betweenCols: [0, 1] },
+    { id: "intertramo-v-lavalle-tucuman",    type: "intertramo_vertical", name: "Entre Lavalle y Tucumán",       green: 2, yellow: 0, red: 0, betweenCols: [1, 2] },
+    { id: "intertramo-v-tucuman-viamonte",   type: "intertramo_vertical", name: "Entre Tucumán y Viamonte",      green: 1, yellow: 0, red: 0, betweenCols: [2, 3] },
 
     // 1 Referencia Vertical
-    {
-        id: "referencia-v-costado-cordoba",
-        type: "referencia_vertical",
-        name: "Al costado derecho de Av. Córdoba",
-        green: 2,
-        yellow: 0,
-        red: 0,
-        referenceCol: 4
-    }
+    { id: "referencia-v-costado-cordoba", type: "referencia_vertical", name: "Al costado derecho de Av. Córdoba", green: 2, yellow: 0, red: 0, referenceCol: 4 }
 ];
 
-const EXPECTED_GLOBAL_VALIDATION = {
-    green: 81,
-    yellow: 44,
-    red: 16,
-    total: 141
-};
+const BUENOS_AIRES_VALIDATION = { green: 81, yellow: 44, red: 16, total: 141 };
 
-// ==========================================================
-// 3. BASE DE DATOS CUALITATIVA Y ESTADÍSTICA POR CALLE (MARKDOWN)
-// ==========================================================
-// Vinculada por el ID único de cada banda.
-
-const STREET_DETAILS_BY_ID = {
+const BUENOS_AIRES_STREET_DETAILS = {
     "banda-av-corrientes": {
         id: "banda-av-corrientes",
         name: "Av. Corrientes",
-        difficultyStats: {
-            mayorDificultad: 9,
-            menorDificultad: 1,
-            mediaDificultad: 2.11
-        },
+        difficultyStats: { mayorDificultad: 9, menorDificultad: 1, mediaDificultad: 2.11 },
         urbanAspects: {
             estadoCallesVeredas: { si: 0, no: 10 },
             crucesOrientacion: { si: 2, no: 8 },
@@ -316,15 +176,10 @@ const STREET_DETAILS_BY_ID = {
             { texto: "Seguridad", contexto: "Menor" }
         ]
     },
-
     "banda-cerrito": {
         id: "banda-cerrito",
         name: "Cerrito",
-        difficultyStats: {
-            mayorDificultad: 5,
-            menorDificultad: 5,
-            mediaDificultad: 2.60
-        },
+        difficultyStats: { mayorDificultad: 5, menorDificultad: 5, mediaDificultad: 2.60 },
         urbanAspects: {
             estadoCallesVeredas: { si: 0, no: 10 },
             crucesOrientacion: { si: 3, no: 7 },
@@ -371,15 +226,10 @@ const STREET_DETAILS_BY_ID = {
             { texto: "Curiosidad", contexto: "Menor" }
         ]
     },
-
     "banda-libertad": {
         id: "banda-libertad",
         name: "Libertad",
-        difficultyStats: {
-            mayorDificultad: 4,
-            menorDificultad: 5,
-            mediaDificultad: 1.00
-        },
+        difficultyStats: { mayorDificultad: 4, menorDificultad: 5, mediaDificultad: 1.00 },
         urbanAspects: {
             estadoCallesVeredas: { si: 0, no: 9 },
             crucesOrientacion: { si: 0, no: 9 },
@@ -422,15 +272,10 @@ const STREET_DETAILS_BY_ID = {
             { texto: "Tranquilidad", contexto: "Menor" }
         ]
     },
-
     "banda-uruguay": {
         id: "banda-uruguay",
         name: "Uruguay",
-        difficultyStats: {
-            mayorDificultad: 4,
-            menorDificultad: 1,
-            mediaDificultad: 2.00
-        },
+        difficultyStats: { mayorDificultad: 4, menorDificultad: 1, mediaDificultad: 2.00 },
         urbanAspects: {
             estadoCallesVeredas: { si: 0, no: 5 },
             crucesOrientacion: { si: 1, no: 4 },
@@ -463,15 +308,10 @@ const STREET_DETAILS_BY_ID = {
             { texto: "Paz", contexto: "Menor" }
         ]
     },
-
     "banda-talcahuano": {
         id: "banda-talcahuano",
         name: "Talcahuano",
-        difficultyStats: {
-            mayorDificultad: 3,
-            menorDificultad: 12,
-            mediaDificultad: 1.33
-        },
+        difficultyStats: { mayorDificultad: 3, menorDificultad: 12, mediaDificultad: 1.33 },
         urbanAspects: {
             estadoCallesVeredas: { si: 1, no: 14 },
             crucesOrientacion: { si: 1, no: 14 },
@@ -527,15 +367,10 @@ const STREET_DETAILS_BY_ID = {
             { texto: "Seguridad", contexto: "Menor" }
         ]
     },
-
     "banda-av-cordoba": {
         id: "banda-av-cordoba",
         name: "Av. Córdoba",
-        difficultyStats: {
-            mayorDificultad: 3,
-            menorDificultad: 2,
-            mediaDificultad: 2.33
-        },
+        difficultyStats: { mayorDificultad: 3, menorDificultad: 2, mediaDificultad: 2.33 },
         urbanAspects: {
             estadoCallesVeredas: { si: 0, no: 5 },
             crucesOrientacion: { si: 1, no: 4 },
@@ -565,15 +400,10 @@ const STREET_DETAILS_BY_ID = {
             { texto: "Naturalidad", contexto: "Menor" }
         ]
     },
-
     "banda-lavalle": {
         id: "banda-lavalle",
         name: "Lavalle",
-        difficultyStats: {
-            mayorDificultad: 3,
-            menorDificultad: 5,
-            mediaDificultad: 1.00
-        },
+        difficultyStats: { mayorDificultad: 3, menorDificultad: 5, mediaDificultad: 1.00 },
         urbanAspects: {
             estadoCallesVeredas: { si: 1, no: 7 },
             crucesOrientacion: { si: 0, no: 8 },
@@ -612,15 +442,10 @@ const STREET_DETAILS_BY_ID = {
             { texto: "Satisfacción", contexto: "Menor" }
         ]
     },
-
     "banda-tucuman": {
         id: "banda-tucuman",
         name: "Tucumán",
-        difficultyStats: {
-            mayorDificultad: 0,
-            menorDificultad: 11,
-            mediaDificultad: null // Sin datos (0 menciones en Mayor dificultad)
-        },
+        difficultyStats: { mayorDificultad: 0, menorDificultad: 11, mediaDificultad: null },
         urbanAspects: {
             estadoCallesVeredas: { si: 1, no: 10 },
             crucesOrientacion: { si: 0, no: 11 },
@@ -663,15 +488,10 @@ const STREET_DETAILS_BY_ID = {
             { texto: "Relajo", contexto: "Menor" }
         ]
     },
-
     "banda-viamonte": {
         id: "banda-viamonte",
         name: "Viamonte",
-        difficultyStats: {
-            mayorDificultad: 0,
-            menorDificultad: 10,
-            mediaDificultad: null // Sin datos (0 menciones en Mayor dificultad)
-        },
+        difficultyStats: { mayorDificultad: 0, menorDificultad: 10, mediaDificultad: null },
         urbanAspects: {
             estadoCallesVeredas: { si: 2, no: 8 },
             crucesOrientacion: { si: 1, no: 9 },
@@ -715,13 +535,203 @@ const STREET_DETAILS_BY_ID = {
 };
 
 // ==========================================================
+// 3. DATOS DEL MODELO 2: BARRIO PUERTO (VALPARAÍSO)
+// ==========================================================
+// 22 registros oficiales proporcionados en la tabla adjunta (Total: 53V, 46A, 66R = 165).
+
+const VALPARAISO_RAW_RECORDS = [
+    // Bandas Horizontales (4 ejes horizontales; el eje superior se divide en los 3 tramos de la tabla y el mapa: Prat, Sotomayor, Serrano)
+    {
+        id: "valpo-banda-prat-sotomayor",
+        type: "horizontal",
+        name: "Prat y Sotomayor",
+        labelText: "Prat",
+        green: 6,
+        yellow: 4,
+        red: 0,
+        customGeom: { x: -19.95, z: -15.0, length: 7.3, width: 2.1, labelOffsetX: -1.1 }
+    },
+    {
+        id: "valpo-banda-prat-sotomayor-serrano",
+        type: "horizontal",
+        name: "Prat, Sotomayor y Serrano",
+        labelText: "Sotomayor",
+        green: 3,
+        yellow: 0,
+        red: 0,
+        customGeom: { x: -12.4, z: -15.0, length: 9.8, width: 2.1, labelOffsetX: 0.0 }
+    },
+    {
+        id: "valpo-banda-serrano",
+        type: "horizontal",
+        name: "Serrano",
+        labelText: "Serrano",
+        green: 9,
+        yellow: 5,
+        red: 0,
+        customGeom: { x: 8.05, z: -15.0, length: 31.1, width: 2.1, labelOffsetX: -9.5 }
+    },
+    {
+        id: "valpo-banda-cochrane",
+        type: "horizontal",
+        name: "Cochrane",
+        labelText: "Cochrane",
+        green: 1,
+        yellow: 7,
+        red: 20,
+        customGeom: { x: 0.0, z: -5.0, length: 47.2, width: 2.1, labelOffsetX: -1.5 }
+    },
+    {
+        id: "valpo-banda-blanco",
+        type: "horizontal",
+        name: "Blanco",
+        labelText: "Blanco",
+        green: 1,
+        yellow: 7,
+        red: 15,
+        customGeom: { x: 0.0, z: 5.0, length: 47.2, width: 2.1, labelOffsetX: -2.2 }
+    },
+    {
+        id: "valpo-banda-errazuriz",
+        type: "horizontal",
+        name: "Errázuriz",
+        labelText: "Errázuriz",
+        green: 11,
+        yellow: 8,
+        red: 2,
+        customGeom: { x: 0.0, z: 15.0, length: 47.2, width: 2.1, labelOffsetX: -1.5 }
+    },
+
+    // Bandas Verticales (6 calles/pasajes verticales + referencia Echaurren / San Martín en el borde derecho)
+    {
+        id: "valpo-banda-sotomayor-1",
+        type: "vertical",
+        name: "Sotomayor 1",
+        labelText: "Sotomayor",
+        green: 2,
+        yellow: 2,
+        red: 1,
+        customGeom: { x: -17.3, z: -1.0, length: 34.4, width: 2.1, labelOffsetZ: 1.0 }
+    },
+    {
+        id: "valpo-banda-sotomayor-2",
+        type: "vertical",
+        name: "Sotomayor 2",
+        labelText: "Sotomayor",
+        green: 4,
+        yellow: 3,
+        red: 1,
+        customGeom: { x: -7.5, z: -1.0, length: 34.4, width: 2.1, labelOffsetZ: 1.0 }
+    },
+    {
+        id: "valpo-banda-almte-munoz",
+        type: "vertical",
+        name: "Almirante Muñoz",
+        labelText: "Almte. Muñoz",
+        green: 0,
+        yellow: 0,
+        red: 2,
+        customGeom: { x: 1.8, z: 0.0, length: 30.0, width: 1.35, labelOffsetZ: 5.0, textSizeScale: 0.78 }
+    },
+    {
+        id: "valpo-banda-almte-goni",
+        type: "vertical",
+        name: "Almirante Goñi",
+        labelText: "Almte. Goñi",
+        green: 0,
+        yellow: 1,
+        red: 3,
+        customGeom: { x: 7.2, z: 0.0, length: 30.0, width: 1.95, labelOffsetZ: 0.0, textSizeScale: 0.86 }
+    },
+    {
+        id: "valpo-banda-almte-perez",
+        type: "vertical",
+        name: "Almirante Pérez",
+        labelText: "Almte. Pérez",
+        green: 0,
+        yellow: 2,
+        red: 1,
+        // En el mapa de referencia, Almte. Pérez va desde Serrano (z=-15) hasta Blanco (z=+5)
+        customGeom: { x: 12.1, z: -5.0, length: 20.0, width: 1.35, labelOffsetZ: 0.0, textSizeScale: 0.78 }
+    },
+    {
+        id: "valpo-banda-clave",
+        type: "vertical",
+        name: "Clave",
+        labelText: "Clave",
+        green: 0,
+        yellow: 4,
+        red: 6,
+        customGeom: { x: 17.0, z: 0.0, length: 30.0, width: 2.1, labelOffsetZ: 0.0 }
+    },
+    {
+        id: "valpo-referencia-echaurren",
+        type: "vertical",
+        name: "Echaurren",
+        labelText: "San Martín",
+        green: 0,
+        yellow: 1,
+        red: 5,
+        customGeom: { x: 22.5, z: 0.0, length: 30.0, width: 1.85, labelOffsetZ: 0.0 }
+    },
+
+    // Registros de Intertramos y tramo sin calle indicada (almacenados en el motor de datos)
+    { id: "valpo-intertramo-v-sotomayor-goni",  type: "intertramo_vertical",   name: "Entre Sotomayor y Almirante Goñi",    green: 1, yellow: 0, red: 0 },
+    { id: "valpo-intertramo-h-cochrane-blanco", type: "intertramo_horizontal", name: "Entre Cochrane y Blanco",             green: 0, yellow: 0, red: 6 },
+    { id: "valpo-intertramo-v-sotomayor-1-2",   type: "intertramo_vertical",   name: "Entre Sotomayor 1 y 2",               green: 4, yellow: 0, red: 1 },
+    { id: "valpo-intertramo-v-izq-sotomayor-1", type: "intertramo_vertical",   name: "A la izquierda de Sotomayor 1",       green: 1, yellow: 0, red: 1 },
+    { id: "valpo-intertramo-h-sotomayor-coch",  type: "intertramo_horizontal", name: "Entre Sotomayor y Cochrane",          green: 1, yellow: 0, red: 0 },
+    { id: "valpo-intertramo-v-soto2-munoz",     type: "intertramo_vertical",   name: "Entre Sotomayor 2 y Almirante Muñoz", green: 3, yellow: 0, red: 2 },
+    { id: "valpo-horizontal-sin-identificar",   type: "horizontal_aux",        name: "Sin calle indicada (T12)",            green: 2, yellow: 1, red: 0 },
+    { id: "valpo-intertramo-h-serrano-coch",    type: "intertramo_horizontal", name: "Entre Serrano y Cochrane",            green: 2, yellow: 0, red: 0 },
+    { id: "valpo-intertramo-h-blanco-errazuriz",type: "intertramo_horizontal", name: "Entre Blanco y Errázuriz",            green: 2, yellow: 1, red: 0 }
+];
+
+const VALPARAISO_VALIDATION = { green: 53, yellow: 46, red: 66, total: 165 };
+
+// Estructura preparada para incorporar posteriormente las estadísticas detalladas y comentarios de Valparaíso
+// sin inventar datos que no estén en los archivos adjuntos (Sección 1 y 5).
+function createPreparedValparaisoStreetDetails() {
+    const detailsMap = {};
+    VALPARAISO_RAW_RECORDS.forEach((rec) => {
+        if (rec.type === "horizontal" || rec.type === "vertical") {
+            detailsMap[rec.id] = {
+                id: rec.id,
+                name: rec.name,
+                isPendingDetailedData: true,
+                difficultyStats: {
+                    mayorDificultad: null,
+                    menorDificultad: null,
+                    mediaDificultad: null
+                },
+                urbanAspects: {
+                    estadoCallesVeredas: null,
+                    crucesOrientacion: null,
+                    ruido: null,
+                    iluminacion: null,
+                    espaciosDescanso: null
+                },
+                comentariosNegativos: [],
+                comentariosPositivos: [],
+                otrosAspectos: [],
+                emociones: []
+            };
+        }
+    });
+    return detailsMap;
+}
+
+const VALPARAISO_STREET_DETAILS = createPreparedValparaisoStreetDetails();
+
+// ==========================================================
 // 4. MOTOR CROMÁTICO Y DE DATOS (ChromaticDataEngine)
 // ==========================================================
 
 class ChromaticDataEngine {
-    constructor(rawRecords, streetDetailsMap) {
+    constructor(rawRecords, streetDetailsMap, expectedValidation) {
         this.recordsById = new Map();
         this.streetDetailsById = streetDetailsMap || {};
+        this.expectedValidation = expectedValidation || null;
         this.minDominantCount = 1;
         this.maxDominantCount = 18;
         this.validationSummary = null;
@@ -892,7 +902,6 @@ class ChromaticDataEngine {
         return mixed;
     }
 
-    // Calcula el color de intersección entre una banda horizontal y una vertical
     computeIntersectionColor(recordH, recordV) {
         const sameSingleCategory =
             !recordH.isMixed &&
@@ -1008,11 +1017,14 @@ class ChromaticDataEngine {
         const pctY = total > 0 ? Number(((sumY / total) * 100).toFixed(1)) : 0;
         const pctR = total > 0 ? Number(((sumR / total) * 100).toFixed(1)) : 0;
 
-        const isValid =
-            sumG === EXPECTED_GLOBAL_VALIDATION.green &&
-            sumY === EXPECTED_GLOBAL_VALIDATION.yellow &&
-            sumR === EXPECTED_GLOBAL_VALIDATION.red &&
-            total === EXPECTED_GLOBAL_VALIDATION.total;
+        const isValid = this.expectedValidation
+            ? (
+                sumG === this.expectedValidation.green &&
+                sumY === this.expectedValidation.yellow &&
+                sumR === this.expectedValidation.red &&
+                total === this.expectedValidation.total
+            )
+            : true;
 
         return {
             green: sumG,
@@ -1033,31 +1045,7 @@ class ChromaticDataEngine {
     getStreetDetails(id) {
         return this.streetDetailsById[id] || null;
     }
-
-    updateRecord(id, partialCounts) {
-        const existing = this.recordsById.get(id);
-        if (!existing) return null;
-
-        const updatedRaw = [];
-        this.recordsById.forEach((rec) => {
-            if (rec.id === id) {
-                updatedRaw.push({
-                    ...rec,
-                    green: partialCounts.green !== undefined ? partialCounts.green : rec.green,
-                    yellow: partialCounts.yellow !== undefined ? partialCounts.yellow : rec.yellow,
-                    red: partialCounts.red !== undefined ? partialCounts.red : rec.red
-                });
-            } else {
-                updatedRaw.push(rec);
-            }
-        });
-
-        this.loadRecords(updatedRaw);
-        return this.recordsById.get(id);
-    }
 }
-
-const DATA_ENGINE = new ChromaticDataEngine(INITIAL_RAW_RECORDS, STREET_DETAILS_BY_ID);
 
 // ==========================================================
 // 5. GENERADORES DE TEXTURAS CON TIPOGRAFÍA POPPINS Y HALO 3D
@@ -1067,9 +1055,8 @@ function createBandLabelTextures(text) {
     const canvasW = 512;
     const canvasH = 128;
     const aspect = canvasW / canvasH;
-    const fontSpec = '600 50px "Poppins", "Segoe UI", sans-serif';
+    const fontSpec = '600 48px "Poppins", "Segoe UI", sans-serif';
 
-    // 1. Glifos blancos nítidos para coloreado dinámico en GPU
     const glyphCanvas = document.createElement("canvas");
     glyphCanvas.width = canvasW;
     glyphCanvas.height = canvasH;
@@ -1087,7 +1074,6 @@ function createBandLabelTextures(text) {
     glyphTexture.magFilter = THREE.LinearFilter;
     glyphTexture.needsUpdate = true;
 
-    // 2. Contorno trasero de contraste
     const backplateCanvas = document.createElement("canvas");
     backplateCanvas.width = canvasW;
     backplateCanvas.height = canvasH;
@@ -1107,7 +1093,6 @@ function createBandLabelTextures(text) {
     outlineTexture.magFilter = THREE.LinearFilter;
     outlineTexture.needsUpdate = true;
 
-    // 3. Resplandor trasero tipo Bloom sutil
     const bloomCanvas = document.createElement("canvas");
     bloomCanvas.width = canvasW;
     bloomCanvas.height = canvasH;
@@ -1141,7 +1126,45 @@ function createBandLabelTextures(text) {
     return { glyphTexture, outlineTexture, bloomTexture, aspect };
 }
 
-// Textura suave para el halo de iluminación cromática alrededor de la banda en hover
+function createStaticLandmarkTexture(lines, options = {}) {
+    const {
+        color = "#94a3b8",
+        fontWeight = "600",
+        italic = false
+    } = options;
+
+    const canvasW = 512;
+    const canvasH = 160;
+    const aspect = canvasW / canvasH;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasW;
+    canvas.height = canvasH;
+    const ctx = canvas.getContext("2d");
+
+    ctx.clearRect(0, 0, canvasW, canvasH);
+    const stylePrefix = italic ? "italic " : "";
+    ctx.font = `${stylePrefix}${fontWeight} 38px "Poppins", "Segoe UI", sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = color;
+
+    const lineArray = Array.isArray(lines) ? lines : [lines];
+    const lineHeight = 44;
+    const startY = canvasH * 0.5 - ((lineArray.length - 1) * lineHeight) * 0.5;
+
+    lineArray.forEach((line, idx) => {
+        ctx.fillText(line, canvasW * 0.5, startY + idx * lineHeight);
+    });
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.needsUpdate = true;
+
+    return { texture: tex, aspect };
+}
+
 function createBandAuraTexture() {
     const canvas = document.createElement("canvas");
     canvas.width = 128;
@@ -1170,12 +1193,13 @@ const SHARED_BAND_AURA_TEXTURE = createBandAuraTexture();
 // ==========================================================
 
 class BandLabel3D {
-    constructor(config, band, scene) {
+    constructor(config, band, parentGroup, dataEngine) {
         this.config = config;
         this.id = config.id;
         this.bandId = config.bandId;
         this.band = band;
-        this.scene = scene;
+        this.parentGroup = parentGroup;
+        this.dataEngine = dataEngine;
 
         this.orientationProgress = 0;
         this.currentScale = 1.0;
@@ -1260,14 +1284,14 @@ class BandLabel3D {
         this.qInactive.setFromEuler(initEuler);
         this.group.quaternion.copy(this.qInactive);
 
-        this.scene.add(this.group);
+        this.parentGroup.add(this.group);
     }
 
     refreshChromaticColors() {
         const record = this.band.getDataRecord();
         if (!record) return;
 
-        const { darkFill, rimColor } = DATA_ENGINE.computeInactiveLabelColors(record);
+        const { darkFill, rimColor } = this.dataEngine.computeInactiveLabelColors(record);
         this.inactiveDarkColor.copy(darkFill);
         this.inactiveRimColor.copy(rimColor);
     }
@@ -1293,7 +1317,6 @@ class BandLabel3D {
         const isHorizontal = band.config.orientation === "horizontal";
         const isActiveOrSelected = (band.isHovered || band.isSelected) && band.isFilterEnabled;
 
-        // 1. Transición de orientación independiente de la elevación
         if (isActiveOrSelected) {
             const inRate = 1 / Math.max(0.05, this.config.orientationInDuration);
             this.orientationProgress = Math.min(1.0, this.orientationProgress + dt * inRate);
@@ -1307,7 +1330,6 @@ class BandLabel3D {
             ? (1 - Math.pow(1 - p, 2.6))
             : (p * p * (3 - 2 * p));
 
-        // 2. Crecimiento suave de escala durante el hover / selección (Sección 7)
         const targetScale = THREE.MathUtils.lerp(1.0, this.config.hoverScale, orientationBlend);
         this.currentScale = THREE.MathUtils.lerp(
             this.currentScale,
@@ -1316,7 +1338,6 @@ class BandLabel3D {
         );
         this.group.scale.setScalar(this.currentScale);
 
-        // 3. Posición 3D sincronizada con la banda
         const sampleCoord = isHorizontal ? this.config.position.x : this.config.position.z;
         const { elevationAtPoint, lateralAtPoint } = band.getDisplacementAtCoordinate(sampleCoord);
 
@@ -1335,7 +1356,6 @@ class BandLabel3D {
         const worldY = restY + elevationAtPoint + extraHoverY;
         this.group.position.set(worldX, worldY, worldZ);
 
-        // 4. Orientación hacia la cámara activa por el camino más corto
         const initEuler = new THREE.Euler(
             this.config.initialOrientation.x,
             this.config.initialOrientation.y,
@@ -1359,9 +1379,8 @@ class BandLabel3D {
 
         this.group.quaternion.copy(this.qInactive).slerp(this.qActive, orientationBlend);
 
-        // 5. Color dinámico y transición hacia gris neutro cuando el filtro desactiva la banda
         if (record) {
-            const visBlend = band.filterVisibility; // 1 = activa, 0 = silueta gris
+            const visBlend = band.filterVisibility;
 
             const elevRatio = THREE.MathUtils.clamp(
                 band.currentElevation / Math.max(0.01, band.config.maxElevation),
@@ -1370,16 +1389,14 @@ class BandLabel3D {
             );
 
             const { activeTextColor, glowColor, contrastNeedFactor } =
-                DATA_ENGINE.computeActiveDynamicContrast(
+                this.dataEngine.computeActiveDynamicContrast(
                     record,
                     camera,
                     this.group.position,
                     elevRatio
                 );
 
-            // Color cuando la banda está habilitada
             this.currentTextColor.copy(this.inactiveDarkColor).lerp(activeTextColor, orientationBlend);
-            // Interpolar hacia gris neutro si la banda está desactivada por filtro
             this.currentTextColor.lerp(this.disabledGrayColor, 1.0 - visBlend);
             this.textMat.color.copy(this.currentTextColor);
 
@@ -1399,39 +1416,39 @@ class BandLabel3D {
 }
 
 // ==========================================================
-// 7. CLASE ELASTIC BAND (Filtros, Relieve Blanco, Destello y Brillo)
+// 7. CLASE ELASTIC BAND (Filtros, Relieve, Destello Individual y Global)
 // ==========================================================
 
 class ElasticBand {
-    constructor(config, scene) {
+    constructor(config, parentGroup, dataEngine) {
         this.config = config;
         this.id = config.id;
         this.name = config.name;
-        this.scene = scene;
+        this.parentGroup = parentGroup;
+        this.dataEngine = dataEngine;
         this.label = null;
         this.perpendicularBands = [];
 
-        // Estado de interacción: 'IDLE' | 'HOVERED' | 'RETURNING'
         this.state = "IDLE";
         this.isHovered = false;
         this.isSelected = false;
         this.returnElapsed = 0;
 
-        // Estado de filtro cromático (Fade Out / Fade In)
         this.isFilterEnabled = true;
-        this.filterVisibility = 1.0;   // [0..1] 0 = silueta gris, 1 = color pleno
-        this.fadeInGlowPulse = 0.0;    // Resplandor transitorio sutil al reactivar filtro
+        this.filterVisibility = 1.0;
+        this.fadeInGlowPulse = 0.0;
 
-        // Estado visual de hover (relieve blanco + resplandor cromático)
         this.hoverVisualBlend = 0.0;
 
-        // Animación de clic (Fase 1: reflejo de luz tipo vidrio; Fase 2: brillo continuo)
         this.clickFlashActive = false;
-        this.clickFlashProgress = 0.0; // [0..1] barrido especular longitudinal
+        this.clickFlashProgress = 0.0;
         this.continuousGlowPhase = 0.0;
         this.continuousGlowBlend = 0.0;
 
-        // Deformación física
+        // Progreso [0..1] del destello de vidrio global al finalizar transición entre modelos (Sección 4)
+        this.globalSurfaceSweepActive = false;
+        this.globalSurfaceSweepProgress = 0.0;
+
         this.currentElevation = 0;
         this.currentLateral = 0;
         this.targetLateral = 0;
@@ -1449,7 +1466,7 @@ class ElasticBand {
     }
 
     getDataRecord() {
-        return DATA_ENGINE.getRecord(this.id);
+        return this.dataEngine.getRecord(this.id);
     }
 
     setPerpendicularBands(perpBands) {
@@ -1462,7 +1479,6 @@ class ElasticBand {
         this.isFilterEnabled = enabled;
 
         if (enabled) {
-            // Activar pulso sutil de resplandor durante el Fade In (Sección 4)
             this.fadeInGlowPulse = 1.0;
         } else {
             if (this.isHovered) {
@@ -1474,7 +1490,6 @@ class ElasticBand {
         }
     }
 
-    // Activa o desactiva la selección por clic (destello inicial + brillo continuo)
     setSelected(selected) {
         if (selected) {
             this.isSelected = true;
@@ -1489,6 +1504,11 @@ class ElasticBand {
                 this.startReturnAnimation();
             }
         }
+    }
+
+    triggerGlobalSurfaceSweep() {
+        this.globalSurfaceSweepActive = true;
+        this.globalSurfaceSweepProgress = 0.0;
     }
 
     startReturnAnimation() {
@@ -1550,7 +1570,6 @@ class ElasticBand {
         this.mesh.receiveShadow = true;
         this.mesh.userData.band = this;
 
-        // Halo 3D de iluminación cromática alrededor de la banda durante hover / selección
         const auraW = isHorizontal ? length * 1.02 : width * 2.45;
         const auraD = isHorizontal ? width * 2.45 : length * 1.02;
         const auraSegX = isHorizontal ? segments : 1;
@@ -1577,7 +1596,6 @@ class ElasticBand {
         this.auraMesh = new THREE.Mesh(this.auraGeo, this.auraMat);
         this.auraMesh.position.set(position.x, position.y, position.z);
 
-        // Hitbox de núcleo ajustada en reposo
         const hitWidth = width * SCENE_CONFIG.bandDefaults.hitboxWidthRatio;
         const hitSizeX = isHorizontal ? length : hitWidth;
         const hitSizeZ = isHorizontal ? hitWidth : length;
@@ -1591,14 +1609,31 @@ class ElasticBand {
         this.restColliderMesh.position.set(position.x, position.y, position.z);
         this.restColliderMesh.userData.band = this;
 
-        this.scene.add(this.auraMesh);
-        this.scene.add(this.mesh);
-        this.scene.add(this.restColliderMesh);
+        this.parentGroup.add(this.auraMesh);
+        this.parentGroup.add(this.mesh);
+        this.parentGroup.add(this.restColliderMesh);
 
         this.applyVertexChromaticProfile();
     }
 
-    // Evalúa colores por vértice: datos, filtros, intersecciones, relieve blanco en hover y destello de clic
+    // Comprueba si una banda perpendicular realmente cruza este tramo geométrico
+    doesPerpendicularBandIntersect(perpBand) {
+        const isHorizontal = this.config.orientation === "horizontal";
+        const myMinU = (isHorizontal ? this.config.position.x : this.config.position.z) - this.config.length * 0.5;
+        const myMaxU = (isHorizontal ? this.config.position.x : this.config.position.z) + this.config.length * 0.5;
+        const perpU = isHorizontal ? perpBand.config.position.x : perpBand.config.position.z;
+
+        if (perpU < myMinU - perpBand.config.width * 0.6 || perpU > myMaxU + perpBand.config.width * 0.6) {
+            return false;
+        }
+
+        const perpMinV = (isHorizontal ? perpBand.config.position.z : perpBand.config.position.x) - perpBand.config.length * 0.5;
+        const perpMaxV = (isHorizontal ? perpBand.config.position.z : perpBand.config.position.x) + perpBand.config.length * 0.5;
+        const myV = isHorizontal ? this.config.position.z : this.config.position.x;
+
+        return (myV >= perpMinV - this.config.width * 0.6 && myV <= perpMaxV + this.config.width * 0.6);
+    }
+
     applyVertexChromaticProfile() {
         const record = this.getDataRecord();
         if (!record) return;
@@ -1607,37 +1642,40 @@ class ElasticBand {
         const colorAttr = this.geometry.attributes.color;
         const rest = this.restPositions;
 
-        const { orientation, width, thickness, length } = this.config;
+        const { orientation, width, thickness, length, position } = this.config;
         const isHorizontal = orientation === "horizontal";
-        const halfBandW = width * 0.56;
         const halfLen = length * 0.5;
-
         const myVis = this.filterVisibility;
 
-        // Precalcular cruces considerando qué bandas están activas según los filtros (Sección 4 y 6)
-        const crossings = this.perpendicularBands.map((perpBand) => {
+        // Precalcular cruces reales con bandas perpendiculares
+        const crossings = [];
+        for (let k = 0; k < this.perpendicularBands.length; k++) {
+            const perpBand = this.perpendicularBands[k];
+            if (!this.doesPerpendicularBandIntersect(perpBand)) continue;
+
             const perpRecord = perpBand.getDataRecord();
-            const coord = isHorizontal ? perpBand.config.position.x : perpBand.config.position.z;
-            const perpVis = perpBand.filterVisibility;
+            const worldCoord = isHorizontal ? perpBand.config.position.x : perpBand.config.position.z;
+            const localCoord = worldCoord - (isHorizontal ? position.x : position.z);
+            const halfCrossW = Math.max(width, perpBand.config.width) * 0.56;
 
             const interColor = isHorizontal
-                ? DATA_ENGINE.computeIntersectionColor(record, perpRecord)
-                : DATA_ENGINE.computeIntersectionColor(perpRecord, record);
+                ? this.dataEngine.computeIntersectionColor(record, perpRecord)
+                : this.dataEngine.computeIntersectionColor(perpRecord, record);
 
-            return {
-                coord,
+            crossings.push({
+                localCoord,
+                halfCrossW,
                 interColor,
                 perpColor: perpRecord.visualColor,
-                perpVis
-            };
-        });
+                perpVis: perpBand.filterVisibility
+            });
+        }
 
         const baseColor = record.visualColor;
         const tempColor = new THREE.Color();
         const crossTargetColor = new THREE.Color();
 
-        // Modulación de brillo dinámico continuo cuando la banda está seleccionada (Sección 8)
-        const pulseWave = Math.sin(this.continuousGlowPhase) * 0.5 + 0.5; // [0..1]
+        const pulseWave = Math.sin(this.continuousGlowPhase) * 0.5 + 0.5;
         const continuousBoost = this.continuousGlowBlend * (0.06 + 0.14 * pulseWave);
 
         for (let i = 0; i < posAttr.count; i++) {
@@ -1650,26 +1688,21 @@ class ElasticBand {
             const vCoord = isHorizontal ? rz : rx;
             const s = THREE.MathUtils.clamp((uCoord + halfLen) / length, 0, 1);
 
-            // 1. Color cromático propio de la banda
             if (record.isMixed && record.componentColors.length >= 2) {
                 tempColor.copy(record.componentColors[0]).lerp(record.componentColors[1], s);
             } else {
                 tempColor.copy(baseColor);
             }
 
-            // 2. Transición hacia silueta grisácea si la banda está desactivada por filtro
             tempColor.lerp(this.silhouetteColor, 1.0 - myVis);
 
-            // 3. Superposición cromática exclusivamente en los puntos de cruce reales (Sección 6)
+            // Superposición cromática en cruces reales
             for (let c = 0; c < crossings.length; c++) {
                 const cr = crossings[c];
-                const dist = Math.abs(uCoord - cr.coord);
-                if (dist < halfBandW * 1.32) {
-                    const spatialT = 1 - THREE.MathUtils.smoothstep(dist, halfBandW * 0.52, halfBandW * 1.32);
+                const dist = Math.abs(uCoord - cr.localCoord);
+                if (dist < cr.halfCrossW * 1.32) {
+                    const spatialT = 1 - THREE.MathUtils.smoothstep(dist, cr.halfCrossW * 0.52, cr.halfCrossW * 1.32);
 
-                    // Si ambas bandas están activas -> color de intersección combinado;
-                    // Si solo una está activa -> predomina la banda activa sin contribución artificial de la inactiva;
-                    // Si ambas están desactivadas -> silueta neutra
                     const bothActive = myVis * cr.perpVis;
                     const onlyPerpActive = (1.0 - myVis) * cr.perpVis;
 
@@ -1681,11 +1714,10 @@ class ElasticBand {
                 }
             }
 
-            // 4. Relieve blanco definido durante hover conservando identidad cromática en bordes (Sección 5)
+            // Relieve blanco en hover
             if (this.hoverVisualBlend > 0.001 && myVis > 0.05) {
                 const isTopFace = ry > thickness * 0.45 ? 1.0 : 0.35;
                 const edgeRatio = THREE.MathUtils.clamp(Math.abs(vCoord) / (width * 0.5), 0, 1);
-                // Centro superior blanco brillante, bordes laterales con fuerte identidad cromática y bisel
                 const whiteReliefFactor =
                     this.hoverVisualBlend *
                     isTopFace *
@@ -1694,12 +1726,12 @@ class ElasticBand {
                 tempColor.lerp(this.whiteReliefColor, whiteReliefFactor * myVis);
             }
 
-            // 5. Fase 2 de clic: Brillo dinámico continuo suave respetando el color de la banda
+            // Brillo continuo de selección
             if (continuousBoost > 0.001 && myVis > 0.05) {
                 tempColor.offsetHSL(0, 0.05 * this.continuousGlowBlend, continuousBoost * myVis);
             }
 
-            // 6. Fase 1 de clic: Reflejo especular de luz tipo vidrio recorriendo la superficie (Sección 8)
+            // Reflejo especular de luz al seleccionar individualmente la banda
             if (this.clickFlashActive && myVis > 0.05) {
                 const sweepCenter = -0.15 + this.clickFlashProgress * 1.30;
                 const skewS = s + (vCoord / width) * 0.06;
@@ -1712,16 +1744,36 @@ class ElasticBand {
                 tempColor.lerp(this.whiteReliefColor, glassSheen);
             }
 
+            // Reflejo de luz global sobre toda la superficie al finalizar transición entre modelos (Sección 4)
+            if (this.globalSurfaceSweepActive) {
+                const worldX = position.x + rx;
+                const worldZ = position.z + rz;
+                // Onda diagonal normalizada en [0..1] desde esquina superior-izquierda (-X, -Z) a inferior-derecha (+X, +Z)
+                const diagNorm = ((worldX / 24.0) + (worldZ / 18.0) + 2.0) * 0.25;
+                const sweepCenter = -0.18 + this.globalSurfaceSweepProgress * 1.36;
+                const dist = Math.abs(diagNorm - sweepCenter);
+                const beam = Math.exp(-Math.pow(dist / 0.085, 2));
+                const trail = 0.38 * Math.exp(-Math.pow((diagNorm - (sweepCenter - 0.09)) / 0.045, 2));
+                const env = Math.sin(Math.PI * THREE.MathUtils.clamp(this.globalSurfaceSweepProgress, 0, 1));
+                const surfaceGlassSheen = THREE.MathUtils.clamp((beam + trail) * env * 0.88, 0, 0.92);
+
+                tempColor.lerp(this.whiteReliefColor, surfaceGlassSheen);
+            }
+
             colorAttr.setXYZ(i, tempColor.r, tempColor.g, tempColor.b);
         }
 
         colorAttr.needsUpdate = true;
 
-        // Actualizar emisión y halo cromático alrededor de la banda
+        const globalSweepGlow = this.globalSurfaceSweepActive
+            ? Math.sin(Math.PI * THREE.MathUtils.clamp(this.globalSurfaceSweepProgress, 0, 1)) * 0.36
+            : 0.0;
+
         const activeAuraStrength = Math.max(
             this.hoverVisualBlend * 0.48,
             this.continuousGlowBlend * (0.28 + 0.24 * pulseWave),
-            this.fadeInGlowPulse * 0.42
+            this.fadeInGlowPulse * 0.42,
+            globalSweepGlow
         ) * myVis;
 
         this.material.emissive.copy(baseColor);
@@ -1812,8 +1864,6 @@ class ElasticBand {
         this.initialContactTransverse = null;
         this.targetLateral = 0;
 
-        // Si la banda está seleccionada mediante click, permanece elevada y activa
-        // aunque el cursor se desplace hacia el panel de información
         if (this.isSelected) {
             this.state = "HOVERED";
             this.targetNormU = 0.5;
@@ -1826,7 +1876,6 @@ class ElasticBand {
     update(dt, camera) {
         let needsColorUpdate = false;
 
-        // 1. Transición Fade In / Fade Out del filtro cromático (Sección 4)
         const targetVis = this.isFilterEnabled ? 1.0 : 0.0;
         if (Math.abs(this.filterVisibility - targetVis) > 0.001) {
             const step = dt * SCENE_CONFIG.bandDefaults.filterTransitionSpeed;
@@ -1843,9 +1892,6 @@ class ElasticBand {
             needsColorUpdate = true;
         }
 
-        // 2. Transición suave del relieve blanco e iluminación en hover (Sección 5)
-        // Cuando la banda pasa a estar seleccionada tras el destello, atenúa la capa blanca
-        // para que domine la respiración cromática continua de su color propio (Sección 8)
         let targetHoverVisual = 0.0;
         if (this.isFilterEnabled) {
             if (this.isHovered) {
@@ -1867,9 +1913,8 @@ class ElasticBand {
             needsColorUpdate = true;
         }
 
-        // 3. Animación de clic: Fase 1 (destello tipo vidrio) y Fase 2 (brillo dinámico continuo) (Sección 8)
         if (this.clickFlashActive) {
-            this.clickFlashProgress += dt * 1.55; // ~0.65s de recorrido especular
+            this.clickFlashProgress += dt * 1.55;
             if (this.clickFlashProgress >= 1.0) {
                 this.clickFlashProgress = 1.0;
                 this.clickFlashActive = false;
@@ -1877,9 +1922,18 @@ class ElasticBand {
             needsColorUpdate = true;
         }
 
+        if (this.globalSurfaceSweepActive) {
+            this.globalSurfaceSweepProgress += dt * 1.25; // ~0.80s de barrido sobre toda la superficie
+            if (this.globalSurfaceSweepProgress >= 1.0) {
+                this.globalSurfaceSweepProgress = 1.0;
+                this.globalSurfaceSweepActive = false;
+            }
+            needsColorUpdate = true;
+        }
+
         const targetContGlow = (this.isSelected && this.isFilterEnabled) ? 1.0 : 0.0;
         if (this.isSelected || this.continuousGlowBlend > 0.001) {
-            this.continuousGlowPhase += dt * 2.4; // Respiración lenta, fluida y sutil
+            this.continuousGlowPhase += dt * 2.4;
             const gLerp = 1 - Math.exp(-5.0 * dt);
             this.continuousGlowBlend = THREE.MathUtils.lerp(
                 this.continuousGlowBlend,
@@ -1893,7 +1947,6 @@ class ElasticBand {
             needsColorUpdate = true;
         }
 
-        // 4. Física de elevación en hover / selección persistente y retorno en ~1s
         if (this.state === "HOVERED" || this.isSelected) {
             this.state = "HOVERED";
             const riseBlend = 1 - Math.exp(-this.config.animationSpeed * dt);
@@ -1970,7 +2023,6 @@ class ElasticBand {
         this.geometry.computeBoundingBox();
         this.geometry.computeBoundingSphere();
 
-        // Sincronizar geometría del halo cromático con la banda deformada
         const auraPos = this.auraGeo.attributes.position;
         const auraArr = auraPos.array;
         const auraRest = this.auraRestPositions;
@@ -2023,100 +2075,95 @@ class ElasticBand {
 }
 
 // ==========================================================
-// 8. CONSTRUCCIÓN DE BANDAS Y SUPERFICIE BASE (Recuadros Limpios)
+// 8. CAPA DE REFLEJO DE VIDRIO SOBRE TODA LA SUPERFICIE (Sección 4)
 // ==========================================================
 
-function buildSceneConfigurations() {
-    const { width: surfW, depth: surfD, columns, rows, tabExtension } = SCENE_CONFIG.surface;
-    const bandDef = SCENE_CONFIG.bandDefaults;
-    const labelDef = SCENE_CONFIG.bandLabelDefaults;
+class SurfaceGlassReflectionLayer {
+    constructor(parentGroup, width, depth) {
+        this.width = width;
+        this.depth = depth;
+        this.active = false;
+        this.progress = 0.0;
 
-    const halfW = surfW * 0.5;
-    const halfD = surfD * 0.5;
+        this.geo = new THREE.PlaneGeometry(width, depth, 48, 36);
+        this.geo.rotateX(-Math.PI * 0.5);
+        this.geo.translate(0, 0.025, 0);
 
-    const horizontalLength = surfW + bandDef.width + tabExtension * 2;
-    const verticalLength = surfD + bandDef.width + tabExtension * 2;
+        const posAttr = this.geo.attributes.position;
+        const colorArr = new Float32Array(posAttr.count * 3);
+        this.geo.setAttribute("color", new THREE.BufferAttribute(colorArr, 3));
 
-    const bandsConfig = [];
-    const bandLabelsConfig = [];
+        this.mat = new THREE.MeshBasicMaterial({
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.0,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        });
 
-    DATA_ENGINE.recordsById.forEach((rec) => {
-        if (rec.type === "horizontal") {
-            const zPos = -halfD + (rec.rowIndex / rows) * surfD;
+        this.mesh = new THREE.Mesh(this.geo, this.mat);
+        this.mesh.visible = false;
+        parentGroup.add(this.mesh);
+    }
 
-            bandsConfig.push({
-                id: rec.id,
-                name: rec.name,
-                orientation: "horizontal",
-                width: bandDef.width,
-                thickness: bandDef.thickness,
-                length: horizontalLength,
-                position: { x: 0, y: 0, z: zPos },
-                maxElevation: bandDef.maxElevation,
-                animationSpeed: bandDef.animationSpeed,
-                returnDuration: bandDef.returnDuration,
-                maxLateralOffset: bandDef.maxLateralOffset,
-                lateralSensitivity: bandDef.lateralSensitivity,
-                layerOffset: rec.rowIndex * 0.0015
-            });
+    trigger() {
+        this.active = true;
+        this.progress = 0.0;
+        this.mesh.visible = true;
+    }
 
-            bandLabelsConfig.push({
-                id: `etiqueta-${rec.id}`,
-                bandId: rec.id,
-                text: rec.name,
-                position: { x: 0, y: 0, z: zPos },
-                initialHeight: labelDef.initialHeight,
-                hoverHeight: labelDef.hoverHeight,
-                separation: labelDef.separation,
-                hoverScale: labelDef.hoverScale,
-                initialOrientation: { x: -Math.PI * 0.5, y: 0, z: 0 },
-                orientationInDuration: labelDef.orientationInDuration,
-                orientationOutDuration: labelDef.orientationOutDuration,
-                maxBloomIntensity: labelDef.maxBloomIntensity,
-                textSize: labelDef.textSize
-            });
-        } else if (rec.type === "vertical") {
-            const xPos = -halfW + (rec.colIndex / columns) * surfW;
+    update(dt) {
+        if (!this.active) return;
 
-            bandsConfig.push({
-                id: rec.id,
-                name: rec.name,
-                orientation: "vertical",
-                width: bandDef.width,
-                thickness: bandDef.thickness,
-                length: verticalLength,
-                position: { x: xPos, y: 0, z: 0 },
-                maxElevation: bandDef.maxElevation,
-                animationSpeed: bandDef.animationSpeed,
-                returnDuration: bandDef.returnDuration,
-                maxLateralOffset: bandDef.maxLateralOffset,
-                lateralSensitivity: bandDef.lateralSensitivity,
-                layerOffset: 0.007 + rec.colIndex * 0.0015
-            });
-
-            bandLabelsConfig.push({
-                id: `etiqueta-${rec.id}`,
-                bandId: rec.id,
-                text: rec.name,
-                position: { x: xPos, y: 0, z: 0 },
-                initialHeight: labelDef.initialHeight,
-                hoverHeight: labelDef.hoverHeight,
-                separation: labelDef.separation,
-                hoverScale: labelDef.hoverScale,
-                initialOrientation: { x: -Math.PI * 0.5, y: 0, z: Math.PI * 0.5 },
-                orientationInDuration: labelDef.orientationInDuration,
-                orientationOutDuration: labelDef.orientationOutDuration,
-                maxBloomIntensity: labelDef.maxBloomIntensity,
-                textSize: labelDef.textSize * 0.92
-            });
+        this.progress += dt * 1.25;
+        if (this.progress >= 1.0) {
+            this.progress = 1.0;
+            this.active = false;
+            this.mat.opacity = 0.0;
+            this.mesh.visible = false;
+            return;
         }
-    });
 
-    return { bandsConfig, bandLabelsConfig };
+        const posAttr = this.geo.attributes.position;
+        const colorAttr = this.geo.attributes.color;
+        const sweepCenter = -0.18 + this.progress * 1.36;
+        const env = Math.sin(Math.PI * this.progress);
+
+        for (let i = 0; i < posAttr.count; i++) {
+            const x = posAttr.getX(i);
+            const z = posAttr.getZ(i);
+            const diagNorm = ((x / (this.width * 0.5)) + (z / (this.depth * 0.5)) + 2.0) * 0.25;
+
+            const dist = Math.abs(diagNorm - sweepCenter);
+            const mainBeam = Math.exp(-Math.pow(dist / 0.09, 2));
+            const secondaryBeam = 0.4 * Math.exp(-Math.pow((diagNorm - (sweepCenter - 0.095)) / 0.045, 2));
+            const val = THREE.MathUtils.clamp((mainBeam + secondaryBeam) * env, 0, 1);
+
+            colorAttr.setXYZ(i, val * 0.88, val * 0.94, val * 1.0);
+        }
+
+        colorAttr.needsUpdate = true;
+        this.mat.opacity = 0.34 * env;
+    }
 }
 
-// Los espacios cuadrados vacíos permanecen limpios e independientes sin recibir datos de intersecciones (Sección 6)
-function buildBaseSurfaceAndRecuadros(scene) {
+// ==========================================================
+// 9. CONSTRUCTORES DE LOS DOS MODELOS 3D INDEPENDIENTES
+// ==========================================================
+
+// 9.1 Constructor del Modelo de Buenos Aires (Barrio de San Nicolás)
+function createBuenosAiresModel(scene) {
+    const rootGroup = new THREE.Group();
+    rootGroup.name = "modelo-buenos-aires";
+    scene.add(rootGroup);
+
+    const dataEngine = new ChromaticDataEngine(
+        BUENOS_AIRES_RAW_RECORDS,
+        BUENOS_AIRES_STREET_DETAILS,
+        BUENOS_AIRES_VALIDATION
+    );
+
     const {
         width,
         depth,
@@ -2134,34 +2181,31 @@ function buildBaseSurfaceAndRecuadros(scene) {
         recuadroMidColor
     } = SCENE_CONFIG.surface;
 
-    const bandW = SCENE_CONFIG.bandDefaults.width;
-    const totalW = width + bandW + tabExtension * 2;
-    const totalD = depth + bandW + tabExtension * 2;
+    const bandDef = SCENE_CONFIG.bandDefaults;
+    const labelDef = SCENE_CONFIG.bandLabelDefaults;
+    const totalW = width + bandDef.width + tabExtension * 2;
+    const totalD = depth + bandDef.width + tabExtension * 2;
 
+    // Superficie base y recuadros
     const surfaceGroup = new THREE.Group();
-    surfaceGroup.name = "superficie-base";
-
     const baseGeo = new THREE.PlaneGeometry(totalW, totalD);
     baseGeo.rotateX(-Math.PI * 0.5);
     baseGeo.translate(0, recuadroDepth - 0.05, 0);
 
-    const baseMat = new THREE.MeshStandardMaterial({
-        color: baseColor,
-        roughness: 0.92,
-        metalness: 0.02,
-        transparent: true,
-        opacity: baseOpacity
-    });
-
-    const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+    const baseMesh = new THREE.Mesh(
+        baseGeo,
+        new THREE.MeshStandardMaterial({
+            color: baseColor,
+            roughness: 0.92,
+            metalness: 0.02,
+            transparent: true,
+            opacity: baseOpacity
+        })
+    );
     baseMesh.receiveShadow = true;
     surfaceGroup.add(baseMesh);
 
-    const gridMat = new THREE.MeshBasicMaterial({
-        color: gridColor,
-        side: THREE.DoubleSide
-    });
-
+    const gridMat = new THREE.MeshBasicMaterial({ color: gridColor, side: THREE.DoubleSide });
     const linePositions = [];
     const halfW = width * 0.5;
     const halfD = depth * 0.5;
@@ -2184,22 +2228,9 @@ function buildBaseSurfaceAndRecuadros(scene) {
         linePositions.push(-totalW * 0.5, 0.002, z, totalW * 0.5, 0.002, z);
     }
 
-    const darkBlockMat = new THREE.MeshStandardMaterial({
-        color: recuadroDarkColor,
-        roughness: 0.88,
-        metalness: 0.04
-    });
-
-    const midBlockMat = new THREE.MeshStandardMaterial({
-        color: recuadroMidColor,
-        roughness: 0.85,
-        metalness: 0.05
-    });
-
-    const stripeMat = new THREE.MeshBasicMaterial({
-        color: 0xd8dee9,
-        side: THREE.DoubleSide
-    });
+    const darkBlockMat = new THREE.MeshStandardMaterial({ color: recuadroDarkColor, roughness: 0.88, metalness: 0.04 });
+    const midBlockMat = new THREE.MeshStandardMaterial({ color: recuadroMidColor, roughness: 0.85, metalness: 0.05 });
+    const stripeMat = new THREE.MeshBasicMaterial({ color: 0xd8dee9, side: THREE.DoubleSide });
 
     const cellW = width / columns;
     const cellD = depth / rows;
@@ -2225,10 +2256,7 @@ function buildBaseSurfaceAndRecuadros(scene) {
             innerGeo.translate(cx, recuadroDepth, cz);
 
             const isMidRowHighlight = (r === 1 && c >= 1);
-            const innerMesh = new THREE.Mesh(
-                innerGeo,
-                isMidRowHighlight ? midBlockMat : darkBlockMat
-            );
+            const innerMesh = new THREE.Mesh(innerGeo, isMidRowHighlight ? midBlockMat : darkBlockMat);
             innerMesh.receiveShadow = true;
             surfaceGroup.add(innerMesh);
 
@@ -2253,16 +2281,360 @@ function buildBaseSurfaceAndRecuadros(scene) {
 
     const lineGeo = new THREE.BufferGeometry();
     lineGeo.setAttribute("position", new THREE.Float32BufferAttribute(linePositions, 3));
-    surfaceGroup.add(
-        new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: gridColor }))
+    surfaceGroup.add(new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: gridColor })));
+    rootGroup.add(surfaceGroup);
+
+    // Bandas y etiquetas 3D
+    const bands = [];
+    const bandsById = new Map();
+    const bandLabelsById = new Map();
+
+    dataEngine.recordsById.forEach((rec) => {
+        if (rec.type !== "horizontal" && rec.type !== "vertical") return;
+
+        const isH = rec.type === "horizontal";
+        const zPos = isH ? (-halfD + (rec.rowIndex / rows) * surfDFromCfg()) : 0;
+        const xPos = isH ? 0 : (-halfW + (rec.colIndex / columns) * width);
+        const len = isH ? totalW : totalD;
+        const layerOffset = isH ? (rec.rowIndex * 0.0015) : (0.007 + rec.colIndex * 0.0015);
+
+        const bandCfg = {
+            id: rec.id,
+            name: rec.name,
+            orientation: rec.type,
+            width: bandDef.width,
+            thickness: bandDef.thickness,
+            length: len,
+            position: { x: xPos, y: 0, z: zPos },
+            maxElevation: bandDef.maxElevation,
+            animationSpeed: bandDef.animationSpeed,
+            returnDuration: bandDef.returnDuration,
+            maxLateralOffset: bandDef.maxLateralOffset,
+            lateralSensitivity: bandDef.lateralSensitivity,
+            layerOffset
+        };
+
+        const band = new ElasticBand(bandCfg, rootGroup, dataEngine);
+        bands.push(band);
+        bandsById.set(band.id, band);
+
+        const labelCfg = {
+            id: `etiqueta-${rec.id}`,
+            bandId: rec.id,
+            text: rec.name,
+            position: { x: xPos, y: 0, z: zPos },
+            initialHeight: labelDef.initialHeight,
+            hoverHeight: labelDef.hoverHeight,
+            separation: labelDef.separation,
+            hoverScale: labelDef.hoverScale,
+            initialOrientation: { x: -Math.PI * 0.5, y: 0, z: isH ? 0 : Math.PI * 0.5 },
+            orientationInDuration: labelDef.orientationInDuration,
+            orientationOutDuration: labelDef.orientationOutDuration,
+            maxBloomIntensity: labelDef.maxBloomIntensity,
+            textSize: isH ? labelDef.textSize : labelDef.textSize * 0.92
+        };
+
+        const label = new BandLabel3D(labelCfg, band, rootGroup, dataEngine);
+        band.label = label;
+        bandLabelsById.set(label.id, label);
+    });
+
+    function surfDFromCfg() {
+        return SCENE_CONFIG.surface.depth;
+    }
+
+    const hBands = bands.filter((b) => b.config.orientation === "horizontal");
+    const vBands = bands.filter((b) => b.config.orientation === "vertical");
+    hBands.forEach((hb) => hb.setPerpendicularBands(vBands));
+    vBands.forEach((vb) => vb.setPerpendicularBands(hBands));
+
+    const surfaceReflection = new SurfaceGlassReflectionLayer(rootGroup, totalW, totalD);
+
+    return {
+        key: "buenos-aires",
+        city: "Buenos Aires",
+        neighborhood: "Barrio de San Nicolás",
+        switchButtonText: "Modelo de Valparaíso",
+        rootGroup,
+        dataEngine,
+        bands,
+        bandsById,
+        bandLabelsById,
+        surfaceReflection,
+        triggerSurfaceReflection() {
+            this.surfaceReflection.trigger();
+            this.bands.forEach((b) => b.triggerGlobalSurfaceSweep());
+        }
+    };
+}
+
+// 9.2 Constructor del Modelo de Valparaíso (Barrio Puerto)
+// Fiel al mapa de referencia de Barrio Puerto y a los 22 registros de la tabla de Valparaíso
+function createValparaisoModel(scene) {
+    const rootGroup = new THREE.Group();
+    rootGroup.name = "modelo-valparaiso";
+    rootGroup.visible = false;
+    scene.add(rootGroup);
+
+    const dataEngine = new ChromaticDataEngine(
+        VALPARAISO_RAW_RECORDS,
+        VALPARAISO_STREET_DETAILS,
+        VALPARAISO_VALIDATION
     );
 
-    scene.add(surfaceGroup);
-    return surfaceGroup;
+    const {
+        gridColor,
+        recuadroDepth,
+        recuadroDarkColor,
+        recuadroMidColor,
+        baseColor,
+        baseOpacity
+    } = SCENE_CONFIG.surface;
+
+    const bandDef = SCENE_CONFIG.bandDefaults;
+    const labelDef = SCENE_CONFIG.bandLabelDefaults;
+
+    const totalW = 47.6;
+    const totalD = 36.6;
+
+    const surfaceGroup = new THREE.Group();
+
+    // Superficie base discreta 4:3
+    const baseGeo = new THREE.PlaneGeometry(totalW, totalD);
+    baseGeo.rotateX(-Math.PI * 0.5);
+    baseGeo.translate(0, recuadroDepth - 0.05, 0);
+
+    const baseMesh = new THREE.Mesh(
+        baseGeo,
+        new THREE.MeshStandardMaterial({
+            color: baseColor,
+            roughness: 0.92,
+            metalness: 0.02,
+            transparent: true,
+            opacity: baseOpacity
+        })
+    );
+    baseMesh.receiveShadow = true;
+    surfaceGroup.add(baseMesh);
+
+    const darkBlockMat = new THREE.MeshStandardMaterial({ color: recuadroDarkColor, roughness: 0.88, metalness: 0.04 });
+    const midBlockMat = new THREE.MeshStandardMaterial({ color: recuadroMidColor, roughness: 0.85, metalness: 0.05 });
+    const rungMat = new THREE.MeshBasicMaterial({ color: 0xd8dee9, side: THREE.DoubleSide });
+
+    const linePositions = [];
+    const yFrame = 0.003;
+
+    // Función auxiliar para añadir un bloque/manzana de Barrio Puerto con su marco exterior #4a4a4a,
+    // su interior hundido y sus pasajes escalonados verticales según la imagen de referencia
+    function addValpoBlock(cx, cz, outerW, outerD, innerW, innerD, isHighlight, passageXCoords = []) {
+        const hw = outerW * 0.5;
+        const hd = outerD * 0.5;
+
+        linePositions.push(
+            cx - hw, yFrame, cz - hd, cx + hw, yFrame, cz - hd,
+            cx + hw, yFrame, cz - hd, cx + hw, yFrame, cz + hd,
+            cx + hw, yFrame, cz + hd, cx - hw, yFrame, cz + hd,
+            cx - hw, yFrame, cz + hd, cx - hw, yFrame, cz - hd
+        );
+
+        const innerGeo = new THREE.PlaneGeometry(innerW, innerD);
+        innerGeo.rotateX(-Math.PI * 0.5);
+        innerGeo.translate(cx, recuadroDepth, cz);
+
+        const innerMesh = new THREE.Mesh(innerGeo, isHighlight ? midBlockMat : darkBlockMat);
+        innerMesh.receiveShadow = true;
+        surfaceGroup.add(innerMesh);
+
+        // Pasajes escalonados (peldaños blancos que atraviesan los bloques en Almte. Muñoz, Almte. Goñi y Almte. Pérez)
+        const numRungs = 9;
+        const rungW = 0.78;
+        const rungD = 0.30;
+        const spanZ = innerD * 0.88;
+
+        passageXCoords.forEach((pxWorld) => {
+            for (let k = 0; k < numRungs; k++) {
+                const zOff = cz - spanZ * 0.5 + (k / (numRungs - 1)) * spanZ;
+                const rGeo = new THREE.PlaneGeometry(rungW, rungD);
+                rGeo.rotateX(-Math.PI * 0.5);
+                rGeo.translate(pxWorld, recuadroDepth + 0.015, zOff);
+                surfaceGroup.add(new THREE.Mesh(rGeo, rungMat));
+            }
+        });
+    }
+
+    // Disposición exacta de las manzanas según el mapa de referencia de Barrio Puerto:
+    // Columna 1 (izquierda de Sotomayor 1: x = -21.2)
+    addValpoBlock(-21.2, -10.0, 5.4, 6.2, 3.9, 4.5, false);
+    addValpoBlock(-21.2,   0.0, 5.4, 6.2, 3.9, 4.5, false);
+    addValpoBlock(-21.2,  10.0, 5.4, 6.2, 3.9, 4.5, false);
+
+    // Columna 2 (entre Sotomayor 1 y Sotomayor 2: x = -12.4, con Plaza Sotomayor en el centro)
+    addValpoBlock(-12.4, -10.0, 5.8, 6.2, 4.2, 4.5, false);
+    addValpoBlock(-12.4,   0.0, 5.8, 6.2, 4.2, 4.5, true); // Plaza Sotomayor
+    addValpoBlock(-12.4,  10.0, 5.8, 6.2, 4.2, 4.5, false);
+
+    // Fila 1 Central-Derecha (gran bloque alargado entre Serrano y Cochrane: x de -4.6 a +14.3,
+    // atravesado por los 3 pasajes escalonados de Almte. Muñoz, Almte. Goñi y Almte. Pérez)
+    addValpoBlock(4.85, -10.0, 18.9, 6.2, 17.2, 4.5, true, [1.8, 7.2, 12.1]);
+
+    // Fila 2 y Fila 3 Central (bloques entre Sotomayor 2 y Almte. Goñi: x = -0.5, atravesados por Almte. Muñoz)
+    addValpoBlock(-0.5,  0.0, 8.8, 6.2, 7.2, 4.5, true, [1.8]);
+    addValpoBlock(-0.5, 10.0, 8.8, 6.2, 7.2, 4.5, false, [1.8]);
+
+    // Fila 2 Derecha (bloque entre Almte. Goñi y Clave: x = 12.1, atravesado por el pasaje Almte. Pérez)
+    addValpoBlock(12.1, 0.0, 5.8, 6.2, 4.2, 4.5, true, [12.1]);
+
+    // Fila 3 Derecha (bloque sólido entre Almte. Goñi y Clave: x = 12.1, sin pasaje porque Almte. Pérez termina en Blanco)
+    addValpoBlock(12.1, 10.0, 5.8, 6.2, 4.2, 4.5, false, []);
+
+    // Columna 5 (derecha de Clave / San Martín / Plaza Echaurren: x = 20.3)
+    addValpoBlock(20.3, -10.0, 3.8, 6.2, 2.5, 4.5, false);
+    addValpoBlock(20.3,   0.0, 3.8, 6.2, 2.5, 4.5, false);
+    addValpoBlock(20.3,  10.0, 3.8, 6.2, 2.5, 4.5, false);
+
+    // Contorno superior con las 2 pestañas salientes de Sotomayor 1 y Sotomayor 2 y línea inferior costera
+    const topZ = -16.8;
+    const tabTopZ = -18.3;
+    const botZ = 16.8;
+    linePositions.push(
+        -23.6, yFrame, topZ, -18.4, yFrame, topZ,
+        -18.4, yFrame, topZ, -18.4, yFrame, tabTopZ,
+        -18.4, yFrame, tabTopZ, -16.2, yFrame, tabTopZ,
+        -16.2, yFrame, tabTopZ, -16.2, yFrame, topZ,
+        -16.2, yFrame, topZ,  -8.6, yFrame, topZ,
+         -8.6, yFrame, topZ,  -8.6, yFrame, tabTopZ,
+         -8.6, yFrame, tabTopZ, -6.4, yFrame, tabTopZ,
+         -6.4, yFrame, tabTopZ, -6.4, yFrame, topZ,
+         -6.4, yFrame, topZ,  23.6, yFrame, topZ,
+        -23.6, yFrame, botZ,  23.6, yFrame, botZ
+    );
+
+    const lineGeo = new THREE.BufferGeometry();
+    lineGeo.setAttribute("position", new THREE.Float32BufferAttribute(linePositions, 3));
+    surfaceGroup.add(new THREE.LineSegments(lineGeo, new THREE.LineBasicMaterial({ color: gridColor })));
+
+    // Textos 3D de hitos geográficos acostados y ligeramente hundidos del mapa de Barrio Puerto
+    const landmarks = [
+        { lines: ["Plaza", "Sotomayor"], x: -12.4, z: 0.0, y: recuadroDepth + 0.03, size: 1.05, rotZ: 0, color: "#94a3b8" },
+        { lines: ["Ascensor", "Cordillera"], x: 7.5, z: -17.55, y: -0.08, size: 0.86, rotZ: 0, color: "#8a94a6" },
+        { lines: ["Estación", "Puerto"], x: -16.8, z: 17.65, y: -0.08, size: 0.84, rotZ: 0, color: "#8a94a6", italic: true },
+        { lines: ["Puerto"], x: 2.2, z: 17.55, y: -0.08, size: 0.90, rotZ: 0, color: "#94a3b8" },
+        { lines: ["Plaza", "Echaurren"], x: 23.25, z: -10.0, y: -0.08, size: 0.85, rotZ: Math.PI * 0.5, color: "#8a94a6" }
+    ];
+
+    const landmarkMeshes = [];
+    landmarks.forEach((lm) => {
+        const { texture, aspect } = createStaticLandmarkTexture(lm.lines, {
+            color: lm.color,
+            italic: Boolean(lm.italic)
+        });
+        const g = new THREE.PlaneGeometry(lm.size * aspect, lm.size);
+        const m = new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true,
+            opacity: 0.9,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        });
+        const mesh = new THREE.Mesh(g, m);
+        mesh.position.set(lm.x, lm.y, lm.z);
+        mesh.rotation.order = "XYZ";
+        mesh.rotation.set(-Math.PI * 0.5, 0, lm.rotZ || 0);
+        surfaceGroup.add(mesh);
+        landmarkMeshes.push({ mesh, config: lm });
+    });
+
+    rootGroup.add(surfaceGroup);
+
+    // Construcción de las bandas 3D de Valparaíso y sus etiquetas
+    const bands = [];
+    const bandsById = new Map();
+    const bandLabelsById = new Map();
+
+    let hLayerIdx = 0;
+    let vLayerIdx = 0;
+
+    dataEngine.recordsById.forEach((rec) => {
+        if ((rec.type !== "horizontal" && rec.type !== "vertical") || !rec.customGeom) return;
+
+        const isH = rec.type === "horizontal";
+        const g = rec.customGeom;
+        const layerOffset = isH ? (hLayerIdx++ * 0.0014) : (0.009 + vLayerIdx++ * 0.0014);
+
+        const bandCfg = {
+            id: rec.id,
+            name: rec.name,
+            orientation: rec.type,
+            width: g.width || bandDef.width,
+            thickness: bandDef.thickness,
+            length: g.length,
+            position: { x: g.x, y: 0, z: g.z },
+            maxElevation: bandDef.maxElevation,
+            animationSpeed: bandDef.animationSpeed,
+            returnDuration: bandDef.returnDuration,
+            maxLateralOffset: bandDef.maxLateralOffset,
+            lateralSensitivity: bandDef.lateralSensitivity,
+            layerOffset
+        };
+
+        const band = new ElasticBand(bandCfg, rootGroup, dataEngine);
+        bands.push(band);
+        bandsById.set(band.id, band);
+
+        const textScale = g.textSizeScale || (isH ? 1.0 : 0.90);
+        const labelCfg = {
+            id: `etiqueta-${rec.id}`,
+            bandId: rec.id,
+            text: rec.labelText || rec.name,
+            position: {
+                x: g.x + (g.labelOffsetX || 0),
+                y: 0,
+                z: g.z + (g.labelOffsetZ || 0)
+            },
+            initialHeight: labelDef.initialHeight,
+            hoverHeight: labelDef.hoverHeight,
+            separation: labelDef.separation,
+            hoverScale: labelDef.hoverScale,
+            initialOrientation: { x: -Math.PI * 0.5, y: 0, z: isH ? 0 : Math.PI * 0.5 },
+            orientationInDuration: labelDef.orientationInDuration,
+            orientationOutDuration: labelDef.orientationOutDuration,
+            maxBloomIntensity: labelDef.maxBloomIntensity,
+            textSize: labelDef.textSize * textScale
+        };
+
+        const label = new BandLabel3D(labelCfg, band, rootGroup, dataEngine);
+        band.label = label;
+        bandLabelsById.set(label.id, label);
+    });
+
+    const hBands = bands.filter((b) => b.config.orientation === "horizontal");
+    const vBands = bands.filter((b) => b.config.orientation === "vertical");
+    hBands.forEach((hb) => hb.setPerpendicularBands(vBands));
+    vBands.forEach((vb) => vb.setPerpendicularBands(hBands));
+
+    const surfaceReflection = new SurfaceGlassReflectionLayer(rootGroup, totalW, totalD);
+
+    return {
+        key: "valparaiso",
+        city: "Valparaíso",
+        neighborhood: "Barrio Puerto",
+        switchButtonText: "Modelo de Buenos Aires",
+        rootGroup,
+        dataEngine,
+        bands,
+        bandsById,
+        bandLabelsById,
+        landmarkMeshes,
+        surfaceReflection,
+        triggerSurfaceReflection() {
+            this.surfaceReflection.trigger();
+            this.bands.forEach((b) => b.triggerGlobalSurfaceSweep());
+        }
+    };
 }
 
 // ==========================================================
-// 9. ICONOS SVG PARA LAS ESTADÍSTICAS DEL PANEL (Sección 11)
+// 10. ICONOS SVG Y CONTROLADOR DEL PANEL DE INFORMACIÓN
 // ==========================================================
 
 const PANEL_ICONS = {
@@ -2275,10 +2647,6 @@ const PANEL_ICONS = {
     iluminacion: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`,
     descanso: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"/><path d="M5 12v6"/><path d="M19 12v6"/><path d="M6 8h12a1 1 0 0 1 1 1v3H5V9a1 1 0 0 1 1-1z"/></svg>`
 };
-
-// ==========================================================
-// 10. CONTROLADOR DEL PANEL DE INFORMACIÓN DINÁMICO (Secciones 9-14)
-// ==========================================================
 
 class StreetInfoPanelController {
     constructor(onPanelCloseCallback) {
@@ -2322,8 +2690,19 @@ class StreetInfoPanelController {
     openForBand(band, tabName = "informacion") {
         if (!band) return;
         const record = band.getDataRecord();
-        const details = DATA_ENGINE.getStreetDetails(band.id);
-        if (!record || !details) return;
+        if (!record) return;
+
+        const details = band.dataEngine.getStreetDetails(band.id) || {
+            id: band.id,
+            name: record.name,
+            isPendingDetailedData: true,
+            difficultyStats: { mayorDificultad: null, menorDificultad: null, mediaDificultad: null },
+            urbanAspects: {},
+            comentariosNegativos: [],
+            comentariosPositivos: [],
+            otrosAspectos: [],
+            emociones: []
+        };
 
         this.currentBandId = band.id;
         this.isOpen = true;
@@ -2337,7 +2716,6 @@ class StreetInfoPanelController {
                 this.activeTab === "informacion" ? "Información" : this.activeTab;
         }
 
-        // 1. Nombre de la calle con color vinculado a la identidad cromática de la banda
         this.streetNameEl.textContent = record.name;
         const titleColor = record.visualColor.clone();
         const hsl = { h: 0, s: 0, l: 0 };
@@ -2354,19 +2732,11 @@ class StreetInfoPanelController {
             badgeDot.style.boxShadow = `0 0 8px ${titleHex}`;
         }
 
-        // 2. Barra de distribución cromática calculada desde los valores absolutos
         this.renderChromaticDistribution(record);
-
-        // 3. Primera sección: Datos cuantificables (Participación, Dificultad y Aspectos urbanos)
-        this.renderQuantitativeStats(details);
-
-        // 4. Segunda sección: Comentarios negativos y positivos
+        this.renderQuantitativeStats(details, record);
         this.renderComments(details);
-
-        // 5. Datos secundarios: Otros aspectos mencionados y Emociones percibidas
         this.renderSecondaryMetadata(details);
 
-        // Restablecer scroll interno al inicio y mostrar panel en sección «Información»
         this.scrollBodyEl.scrollTop = 0;
         this.panelEl.classList.add("is-open");
         this.panelEl.setAttribute("aria-hidden", "false");
@@ -2386,7 +2756,6 @@ class StreetInfoPanelController {
             { key: "red", pct: pctR, cls: "dist-red" }
         ];
 
-        // Si una categoría tiene 0%, no ocupa espacio visible en la barra
         segments.forEach((seg) => {
             if (seg.pct > 0) {
                 const div = document.createElement("div");
@@ -2414,32 +2783,65 @@ class StreetInfoPanelController {
         `;
     }
 
-    renderQuantitativeStats(details) {
-        const d = details.difficultyStats;
-        const u = details.urbanAspects;
+    renderQuantitativeStats(details, record) {
+        const d = details.difficultyStats || {};
+        const u = details.urbanAspects || {};
 
-        // Diferenciar ceros reales de valores no disponibles (null -> "Sin datos")
-        const mediaHtml = (d.mediaDificultad !== null && d.mediaDificultad !== undefined)
-            ? `<span class="stat-value">${d.mediaDificultad.toFixed(2).replace(".", ",")}</span>`
-            : `<span class="stat-value is-unavailable">Sin datos</span>`;
+        if (details.isPendingDetailedData) {
+            // Para Valparaíso: muestra los recuentos reales de la tabla cromática y deja preparada la estructura detallada
+            this.difficultyStatsEl.innerHTML = `
+                <div class="stat-row">
+                    <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.menorDificultad}</span>
+                    <span class="stat-label">Respuestas verdes</span>
+                    <span class="stat-value">${record.green}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.mediaDificultad}</span>
+                    <span class="stat-label">Respuestas amarillas</span>
+                    <span class="stat-value">${record.yellow}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.mayorDificultad}</span>
+                    <span class="stat-label">Respuestas rojas</span>
+                    <span class="stat-value">${record.red}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.cruces}</span>
+                    <span class="stat-label">Total de respuestas del tramo</span>
+                    <span class="stat-value">${record.total}</span>
+                </div>
+            `;
+        } else {
+            const mayorHtml = (d.mayorDificultad !== null && d.mayorDificultad !== undefined)
+                ? `<span class="stat-value">${d.mayorDificultad}</span>`
+                : `<span class="stat-value is-unavailable">Sin datos</span>`;
 
-        this.difficultyStatsEl.innerHTML = `
-            <div class="stat-row">
-                <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.mayorDificultad}</span>
-                <span class="stat-label">Veces en mayor dificultad</span>
-                <span class="stat-value">${d.mayorDificultad}</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.menorDificultad}</span>
-                <span class="stat-label">Veces en menor dificultad</span>
-                <span class="stat-value">${d.menorDificultad}</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.mediaDificultad}</span>
-                <span class="stat-label">Media de dificultad percibida</span>
-                ${mediaHtml}
-            </div>
-        `;
+            const menorHtml = (d.menorDificultad !== null && d.menorDificultad !== undefined)
+                ? `<span class="stat-value">${d.menorDificultad}</span>`
+                : `<span class="stat-value is-unavailable">Sin datos</span>`;
+
+            const mediaHtml = (d.mediaDificultad !== null && d.mediaDificultad !== undefined)
+                ? `<span class="stat-value">${d.mediaDificultad.toFixed(2).replace(".", ",")}</span>`
+                : `<span class="stat-value is-unavailable">Sin datos</span>`;
+
+            this.difficultyStatsEl.innerHTML = `
+                <div class="stat-row">
+                    <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.mayorDificultad}</span>
+                    <span class="stat-label">Veces en mayor dificultad</span>
+                    ${mayorHtml}
+                </div>
+                <div class="stat-row">
+                    <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.menorDificultad}</span>
+                    <span class="stat-label">Veces en menor dificultad</span>
+                    ${menorHtml}
+                </div>
+                <div class="stat-row">
+                    <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.mediaDificultad}</span>
+                    <span class="stat-label">Media de dificultad percibida</span>
+                    ${mediaHtml}
+                </div>
+            `;
+        }
 
         const urbanItems = [
             { icon: PANEL_ICONS.veredas, label: "Estado de calles y veredas", data: u.estadoCallesVeredas },
@@ -2451,6 +2853,15 @@ class StreetInfoPanelController {
 
         this.urbanStatsEl.innerHTML = urbanItems
             .map((item) => {
+                if (!item.data) {
+                    return `
+                        <div class="stat-row">
+                            <span class="stat-icon" aria-hidden="true">${item.icon}</span>
+                            <span class="stat-label">${item.label}</span>
+                            <span class="stat-value is-unavailable">Sin datos</span>
+                        </div>
+                    `;
+                }
                 const si = item.data.si;
                 const no = item.data.no;
                 return `
@@ -2472,7 +2883,7 @@ class StreetInfoPanelController {
         const posList = details.comentariosPositivos || [];
 
         if (negList.length === 0) {
-            this.commentsNegEl.innerHTML = `<div class="comments-empty">No hay comentarios negativos registrados para esta calle.</div>`;
+            this.commentsNegEl.innerHTML = `<div class="comments-empty">Sin datos de comentarios disponibles para esta calle.</div>`;
         } else {
             this.commentsNegEl.innerHTML = negList
                 .map((text) => `<article class="comment-card comment-neg">“${text}”</article>`)
@@ -2480,7 +2891,7 @@ class StreetInfoPanelController {
         }
 
         if (posList.length === 0) {
-            this.commentsPosEl.innerHTML = `<div class="comments-empty">No hay comentarios positivos registrados para esta calle.</div>`;
+            this.commentsPosEl.innerHTML = `<div class="comments-empty">Sin datos de comentarios disponibles para esta calle.</div>`;
         } else {
             this.commentsPosEl.innerHTML = posList
                 .map((text) => `<article class="comment-card comment-pos">“${text}”</article>`)
@@ -2493,7 +2904,7 @@ class StreetInfoPanelController {
         const emotions = details.emociones || [];
 
         if (aspects.length === 0) {
-            this.otherAspectsEl.innerHTML = `<span class="comments-empty">Sin aspectos adicionales</span>`;
+            this.otherAspectsEl.innerHTML = `<span class="comments-empty">Sin datos adicionales</span>`;
         } else {
             this.otherAspectsEl.innerHTML = aspects
                 .map((item) => {
@@ -2509,7 +2920,7 @@ class StreetInfoPanelController {
         }
 
         if (emotions.length === 0) {
-            this.emotionsEl.innerHTML = `<span class="comments-empty">Sin emociones registradas</span>`;
+            this.emotionsEl.innerHTML = `<span class="comments-empty">Sin datos adicionales</span>`;
         } else {
             this.emotionsEl.innerHTML = emotions
                 .map((item) => {
@@ -2544,27 +2955,22 @@ class StreetInfoPanelController {
 // ==========================================================
 
 class BandInteractionManager {
-    constructor(camera, domElement, bands, infoPanel) {
+    constructor(camera, domElement, initialBands, infoPanel) {
         this.camera = camera;
         this.domElement = domElement;
-        this.bands = bands;
+        this.bands = initialBands || [];
         this.infoPanel = infoPanel;
 
-        // Estado centralizado de interacción:
-        // - hoveredBand: banda actualmente bajo el cursor (previsualización)
-        // - selectedBand: banda seleccionada mediante click (panel abierto)
-        // - isInfoPanelOpen: estado de visibilidad del panel de información
-        // - activePanelTab: sección activa del panel («informacion»)
         this.hoveredBand = null;
         this.selectedBand = null;
         this.isInfoPanelOpen = false;
         this.activePanelTab = "informacion";
 
-        // Banda capturada en pointerdown para garantizar precisión del click
-        this.bandAtPointerDown = null;
-        // Banda en fase de retorno para evitar cambios involuntarios en intersecciones
-        this.returningLockedBand = null;
+        // Bloqueo temporal durante la transición cinematográfica entre modelos
+        this.isTransitionLocked = false;
 
+        this.bandAtPointerDown = null;
+        this.returningLockedBand = null;
         this.pointerDownPos = { x: 0, y: 0 };
 
         this.raycaster = new THREE.Raycaster();
@@ -2574,6 +2980,23 @@ class BandInteractionManager {
         this.planeHitPoint = new THREE.Vector3();
 
         this.bindEvents();
+    }
+
+    // Cambia el conjunto de bandas activas al alternar entre Buenos Aires y Valparaíso
+    setActiveModelBands(newBands) {
+        this.clearSelectedBand(true);
+        this.releaseHoveredBand();
+        this.returningLockedBand = null;
+        this.bandAtPointerDown = null;
+        this.bands = newBands || [];
+    }
+
+    setTransitionLocked(locked) {
+        this.isTransitionLocked = locked;
+        if (locked) {
+            this.clearSelectedBand(true);
+            this.releaseHoveredBand();
+        }
     }
 
     updatePointerNDCFromEvent(e) {
@@ -2590,29 +3013,24 @@ class BandInteractionManager {
 
         this.domElement.addEventListener("pointerleave", () => {
             this.hasValidPointer = false;
-            // Al salir del lienzo 3D (por ejemplo, hacia el panel HTML), se libera solo el hover,
-            // manteniendo intacta la banda seleccionada (selectedBand) y el panel abierto
             this.releaseHoveredBand();
         });
 
         this.domElement.addEventListener("pointerdown", (e) => {
-            if (e.button !== 0) return;
+            if (e.button !== 0 || this.isTransitionLocked) return;
             this.updatePointerNDCFromEvent(e);
             this.pointerDownPos.x = e.clientX;
             this.pointerDownPos.y = e.clientY;
-
-            // Capturar la banda en hover o bajo el rayo en el instante exacto del pointerdown
             this.bandAtPointerDown = this.hoveredBand || this.pickBandAtCurrentPointer();
         });
 
         this.domElement.addEventListener("pointerup", (e) => {
-            if (e.button !== 0) return;
+            if (e.button !== 0 || this.isTransitionLocked) return;
             const moveDist = Math.hypot(
                 e.clientX - this.pointerDownPos.x,
                 e.clientY - this.pointerDownPos.y
             );
 
-            // Si no hubo arrastre de cámara, procesar el click sobre la banda
             if (moveDist < 7) {
                 this.updatePointerNDCFromEvent(e);
                 this.handleSceneClick();
@@ -2621,9 +3039,8 @@ class BandInteractionManager {
         });
     }
 
-    // Raycast directo en el instante del click para máxima fiabilidad
     pickBandAtCurrentPointer() {
-        if (!this.hasValidPointer) return null;
+        if (!this.hasValidPointer || this.isTransitionLocked) return null;
 
         this.raycaster.setFromCamera(this.pointerNDC, this.camera);
         const enabledTargets = this.getEnabledRaycastTargets();
@@ -2650,6 +3067,8 @@ class BandInteractionManager {
     }
 
     handleSceneClick() {
+        if (this.isTransitionLocked) return;
+
         const targetBand =
             this.hoveredBand ||
             this.bandAtPointerDown ||
@@ -2660,11 +3079,9 @@ class BandInteractionManager {
         }
     }
 
-    // Selecciona una banda de forma exclusiva y abre/actualiza el panel en la sección «Información»
     selectBand(band) {
-        if (!band || !band.isFilterEnabled) return;
+        if (!band || !band.isFilterEnabled || this.isTransitionLocked) return;
 
-        // Si había otra banda seleccionada previamente, deseleccionarla (regla de selección exclusiva)
         if (this.selectedBand && this.selectedBand !== band) {
             const previousBand = this.selectedBand;
             previousBand.setSelected(false);
@@ -2702,7 +3119,6 @@ class BandInteractionManager {
         }
     }
 
-    // Si se desactiva mediante filtro la categoría de la banda actualmente seleccionada o en hover
     onFilterCategoryChanged() {
         if (this.selectedBand && !this.selectedBand.isFilterEnabled) {
             this.clearSelectedBand(true);
@@ -2754,13 +3170,15 @@ class BandInteractionManager {
     }
 
     update(isDraggingCamera) {
-        // Si la banda seleccionada fue deshabilitada por filtro, cerrar y limpiar
+        if (this.isTransitionLocked) {
+            this.domElement.classList.remove("is-hovering-band");
+            return;
+        }
+
         if (this.selectedBand && !this.selectedBand.isFilterEnabled) {
             this.clearSelectedBand(true);
         }
 
-        // Si el cursor está fuera del canvas o arrastrando la cámara, liberar solo el hover
-        // (la banda seleccionada permanece activa con su panel abierto)
         if (!this.hasValidPointer || isDraggingCamera) {
             this.releaseHoveredBand();
             return;
@@ -2772,8 +3190,6 @@ class BandInteractionManager {
 
         this.raycaster.setFromCamera(this.pointerNDC, this.camera);
 
-        // 1. Mantener estabilidad sobre la banda actualmente en hover (hoveredBand)
-        // para que cruzar una intersección a lo largo de la misma banda no cambie el hover por error
         if (this.hoveredBand) {
             if (!this.hoveredBand.isFilterEnabled) {
                 this.releaseHoveredBand();
@@ -2817,12 +3233,9 @@ class BandInteractionManager {
                 return;
             }
 
-            // El cursor salió de la banda en hover
             this.releaseHoveredBand();
         }
 
-        // 2. Detectar hover sobre cualquier banda habilitada (permitiendo previsualizar otra banda
-        // y hacer click en ella para cambiar la selección activa del panel)
         const enabledTargets = this.getEnabledRaycastTargets();
         if (enabledTargets.length === 0) {
             this.domElement.classList.remove("is-hovering-band");
@@ -2875,12 +3288,12 @@ class BandInteractionManager {
 }
 
 // ==========================================================
-// 12. CONTROLADOR DE FILTROS CROMÁTICOS (Secciones 4 y 15)
+// 12. CONTROLADOR DE FILTROS CROMÁTICOS (Multimodelo)
 // ==========================================================
 
 class ChromaticFilterController {
-    constructor(bands, interactionManager) {
-        this.bands = bands;
+    constructor(models, interactionManager) {
+        this.models = models;
         this.interactionManager = interactionManager;
 
         this.activeCategories = {
@@ -2905,19 +3318,20 @@ class ChromaticFilterController {
 
             input.addEventListener("change", () => {
                 this.activeCategories[catKey] = input.checked;
-                this.applyFiltersToBands();
+                this.applyFiltersToAllModels();
             });
         });
     }
 
-    applyFiltersToBands() {
-        this.bands.forEach((band) => {
-            const record = band.getDataRecord();
-            if (!record) return;
+    applyFiltersToAllModels() {
+        this.models.forEach((model) => {
+            model.bands.forEach((band) => {
+                const record = band.getDataRecord();
+                if (!record) return;
 
-            // Determinar si la categoría predominante de la banda está activa en los filtros
-            const isEnabled = record.dominantKeys.some((k) => this.activeCategories[k]);
-            band.setFilterEnabled(isEnabled);
+                const isEnabled = record.dominantKeys.some((k) => this.activeCategories[k]);
+                band.setFilterEnabled(isEnabled);
+            });
         });
 
         if (this.interactionManager) {
@@ -2927,7 +3341,7 @@ class ChromaticFilterController {
 }
 
 // ==========================================================
-// 13. CONTROLADOR DE CÁMARA ORBITAL SINCRONIZADO
+// 13. CONTROLADOR DE CÁMARA ORBITAL Y TRANSICIÓN CINEMATOGRÁFICA
 // ==========================================================
 
 class OrbitalCameraController {
@@ -2955,13 +3369,22 @@ class OrbitalCameraController {
 
         this.autoRotateBlend = 1.0;
 
+        // Estado de transición cinematográfica entre modelos (Sección 3)
+        this.transitionState = "NONE"; // 'NONE' | 'ASCENDING' | 'DESCENDING'
+        this.transitionElapsed = 0;
+        this.startTransAzimuth = 0;
+        this.startTransPolar = 0;
+        this.startTransRadius = 0;
+        this.onHiddenSwapCallback = null;
+        this.onTransitionCompleteCallback = null;
+
         this.bindEvents();
         this.updateCameraTransform();
     }
 
     bindEvents() {
         this.domElement.addEventListener("pointerdown", (e) => {
-            if (e.button !== 0) return;
+            if (e.button !== 0 || this.transitionState !== "NONE") return;
             this.isPointerDown = true;
             this.isDragging = false;
             this.pointerDownPos.x = e.clientX;
@@ -2971,15 +3394,13 @@ class OrbitalCameraController {
         });
 
         window.addEventListener("pointermove", (e) => {
-            if (!this.isPointerDown) return;
+            if (!this.isPointerDown || this.transitionState !== "NONE") return;
 
             if (!this.isDragging) {
                 const distFromDown = Math.hypot(
                     e.clientX - this.pointerDownPos.x,
                     e.clientY - this.pointerDownPos.y
                 );
-                // Solo activar modo arrastre de cámara si supera el umbral de 5px,
-                // evitando que un click normal cancele el hover sobre una banda
                 if (distFromDown < this.dragThresholdPx) return;
                 this.isDragging = true;
                 this.domElement.classList.add("is-dragging");
@@ -3012,6 +3433,7 @@ class OrbitalCameraController {
             "wheel",
             (e) => {
                 e.preventDefault();
+                if (this.transitionState !== "NONE") return;
                 this.targetRadius = THREE.MathUtils.clamp(
                     this.targetRadius + e.deltaY * 0.035,
                     this.cfg.minRadius,
@@ -3022,7 +3444,87 @@ class OrbitalCameraController {
         );
     }
 
+    // Inicia la transición cinematográfica en dos fases (Ascenso a contrapicado -> Cambio -> Descenso a picado)
+    startModelTransition(onHiddenSwap, onComplete) {
+        if (this.transitionState !== "NONE") return;
+
+        this.isPointerDown = false;
+        this.isDragging = false;
+        this.domElement.classList.remove("is-dragging");
+
+        this.transitionState = "ASCENDING";
+        this.transitionElapsed = 0;
+
+        this.startTransAzimuth = this.azimuthAngle;
+        this.startTransPolar = this.polarAngle;
+        this.startTransRadius = this.radius;
+
+        this.onHiddenSwapCallback = onHiddenSwap;
+        this.onTransitionCompleteCallback = onComplete;
+    }
+
     update(dt, isBandInteractionActive) {
+        // 1. Transición cinematográfica entre modelos
+        if (this.transitionState === "ASCENDING") {
+            this.transitionElapsed += dt;
+            const dur1 = this.cfg.transitionAscentDuration;
+            const t = Math.min(1.0, this.transitionElapsed / dur1);
+            // Curva suave de aceleración que mantiene continuidad al llegar al cenit del giro
+            const easeIn = t * t * (2.2 - 1.2 * t);
+
+            // Giro ligero hacia la derecha y ascenso mientras la mirada sube a ángulo contrapicado (+Y alto)
+            // De este modo la superficie queda completamente fuera del borde inferior del campo de visión
+            this.azimuthAngle = this.startTransAzimuth + easeIn * 0.56;
+            this.polarAngle = THREE.MathUtils.lerp(this.startTransPolar, 0.72, easeIn);
+            this.radius = THREE.MathUtils.lerp(this.startTransRadius, this.cfg.initialRadius * 1.05, easeIn);
+            this.target.set(0, easeIn * 124.0, 0);
+
+            this.updateCameraTransform();
+
+            if (t >= 1.0) {
+                // La superficie está 100% fuera de cámara: ejecutar el cambio de modelo y esperar a que esté listo
+                if (typeof this.onHiddenSwapCallback === "function") {
+                    this.onHiddenSwapCallback();
+                }
+                this.transitionState = "DESCENDING";
+                this.transitionElapsed = 0;
+                this.startTransAzimuth = this.azimuthAngle;
+            }
+            return;
+        }
+
+        if (this.transitionState === "DESCENDING") {
+            this.transitionElapsed += dt;
+            const dur2 = this.cfg.transitionDescentDuration;
+            const t = Math.min(1.0, this.transitionElapsed / dur2);
+            // Desaceleración suave desde el lado izquierdo pasando de contrapicado a ángulo picado
+            const easeOut = 1 - Math.pow(1 - t, 3.0);
+
+            this.azimuthAngle = this.startTransAzimuth + easeOut * 0.56;
+            this.polarAngle = THREE.MathUtils.lerp(0.72, this.cfg.initialPolarAngle, easeOut);
+            this.radius = THREE.MathUtils.lerp(this.cfg.initialRadius * 1.05, this.cfg.initialRadius, easeOut);
+            this.target.set(0, (1.0 - easeOut) * 124.0, 0);
+
+            this.targetAzimuthAngle = this.azimuthAngle;
+            this.targetPolarAngle = this.polarAngle;
+            this.targetRadius = this.radius;
+
+            this.updateCameraTransform();
+
+            if (t >= 1.0) {
+                this.target.set(0, 0, 0);
+                this.transitionState = "NONE";
+                this.autoRotateBlend = 0.25;
+                this.updateCameraTransform();
+
+                if (typeof this.onTransitionCompleteCallback === "function") {
+                    this.onTransitionCompleteCallback();
+                }
+            }
+            return;
+        }
+
+        // 2. Comportamiento orbital normal
         if (this.isDragging) {
             this.autoRotateBlend = 0;
         } else if (isBandInteractionActive) {
@@ -3052,9 +3554,9 @@ class OrbitalCameraController {
         const cosTheta = Math.cos(this.azimuthAngle);
 
         this.camera.position.set(
-            this.target.x + this.radius * sinPhi * sinTheta,
-            this.target.y + this.radius * cosPhi,
-            this.target.z + this.radius * sinPhi * cosTheta
+            this.radius * sinPhi * sinTheta,
+            this.radius * cosPhi,
+            this.radius * sinPhi * cosTheta
         );
 
         this.camera.lookAt(this.target);
@@ -3062,55 +3564,46 @@ class OrbitalCameraController {
 }
 
 // ==========================================================
-// 14. REGISTRO GLOBAL Y API DE DATOS
+// 14. REGISTRO GLOBAL Y API MULTIMODELO
 // ==========================================================
 
 const SCENE_REGISTRY = {
-    dataEngine: DATA_ENGINE,
-    bandsById: new Map(),
-    bandLabelsById: new Map(),
+    activeModelKey: "buenos-aires",
+    models: {},
     infoPanel: null,
     filterController: null,
     interactionManager: null,
+    cameraController: null,
 
+    getActiveModel() {
+        return this.models[this.activeModelKey] || null;
+    },
     getBand(id) {
-        return this.bandsById.get(id) || null;
+        const active = this.getActiveModel();
+        return (active && active.bandsById.get(id)) || null;
     },
     getBandLabel(id) {
-        return this.bandLabelsById.get(id) || null;
+        const active = this.getActiveModel();
+        return (active && active.bandLabelsById.get(id)) || null;
     },
     getDataRecord(id) {
-        return this.dataEngine.getRecord(id);
-    },
-    getStreetDetails(id) {
-        return this.dataEngine.getStreetDetails(id);
-    },
-
-    updateRecordData(id, newCounts) {
-        const updated = this.dataEngine.updateRecord(id, newCounts);
-        if (!updated) return null;
-
-        this.bandsById.forEach((band) => {
-            band.applyVertexChromaticProfile();
-            if (band.label) band.label.refreshChromaticColors();
-        });
-
-        if (this.filterController) {
-            this.filterController.applyFiltersToBands();
-        }
-
-        return updated;
+        const active = this.getActiveModel();
+        return active ? active.dataEngine.getRecord(id) : null;
     }
 };
 
 window.SCENE_REGISTRY = SCENE_REGISTRY;
 
 // ==========================================================
-// 15. INICIALIZACIÓN Y BUCLE PRINCIPAL DE RENDERIZADO
+// 15. INICIALIZACIÓN, ALTERNANCIA DE MODELOS Y RENDERIZADO
 // ==========================================================
 
 function initInteractiveScene() {
     const container = document.getElementById("scene-container");
+    const switchBtn = document.getElementById("model-switch-btn");
+    const switchLabel = document.getElementById("model-switch-label");
+    const geoCityEl = document.getElementById("geo-city-label");
+    const geoNeighborhoodEl = document.getElementById("geo-neighborhood-label");
 
     const scene = new THREE.Scene();
 
@@ -3155,45 +3648,34 @@ function initInteractiveScene() {
     rimLight.position.set(-24, 20, -22);
     scene.add(rimLight);
 
-    // 1. Construir superficie base 4:3 y recuadros vacíos limpios e independientes
-    buildBaseSurfaceAndRecuadros(scene);
+    // 1. Construir ambos modelos 3D de manera independiente y precompilarlos en GPU
+    const buenosAiresModel = createBuenosAiresModel(scene);
+    const valparaisoModel = createValparaisoModel(scene);
 
-    // 2. Generar configuraciones de las 9 bandas y sus etiquetas
-    const { bandsConfig, bandLabelsConfig } = buildSceneConfigurations();
+    SCENE_REGISTRY.models["buenos-aires"] = buenosAiresModel;
+    SCENE_REGISTRY.models["valparaiso"] = valparaisoModel;
+    SCENE_REGISTRY.activeModelKey = "buenos-aires";
 
-    // 3. Construir las 9 bandas (4H + 5V)
-    const bands = bandsConfig.map((cfg) => {
-        const band = new ElasticBand(cfg, scene);
-        SCENE_REGISTRY.bandsById.set(band.id, band);
-        return band;
-    });
+    // Precompilar shaders de ambos modelos para garantizar cambio instantáneo sin tirones
+    valparaisoModel.rootGroup.visible = true;
+    renderer.compile(scene, camera);
+    valparaisoModel.rootGroup.visible = false;
+    buenosAiresModel.rootGroup.visible = true;
 
-    const horizontalBands = bands.filter((b) => b.config.orientation === "horizontal");
-    const verticalBands = bands.filter((b) => b.config.orientation === "vertical");
-
-    horizontalBands.forEach((hBand) => hBand.setPerpendicularBands(verticalBands));
-    verticalBands.forEach((vBand) => vBand.setPerpendicularBands(horizontalBands));
-
-    // 4. Construir y vincular etiquetas 3D con tipografía Poppins
-    bandLabelsConfig.forEach((labelCfg) => {
-        const band = SCENE_REGISTRY.getBand(labelCfg.bandId);
-        if (band) {
-            const label = new BandLabel3D(labelCfg, band, scene);
-            band.label = label;
-            SCENE_REGISTRY.bandLabelsById.set(label.id, label);
-        }
-    });
-
-    // Actualizar texturas de texto 3D una vez que la fuente Poppins haya terminado de cargar
+    // 2. Actualizar texturas de texto 3D de ambos modelos una vez cargada la fuente Poppins
+    let fontsReadyResolved = false;
     if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(() => {
-            SCENE_REGISTRY.bandLabelsById.forEach((label) => {
-                label.rebuildFontTextures();
+            fontsReadyResolved = true;
+            [buenosAiresModel, valparaisoModel].forEach((mdl) => {
+                mdl.bandLabelsById.forEach((label) => label.rebuildFontTextures());
             });
         });
+    } else {
+        fontsReadyResolved = true;
     }
 
-    // 5. Inicializar panel de información, cámara, interacción y filtros cromáticos
+    // 3. Inicializar panel de información, cámara, interacción y filtros cromáticos
     let interactionManager = null;
 
     const infoPanel = new StreetInfoPanelController(() => {
@@ -3203,12 +3685,75 @@ function initInteractiveScene() {
     });
 
     const cameraController = new OrbitalCameraController(camera, renderer.domElement);
-    interactionManager = new BandInteractionManager(camera, renderer.domElement, bands, infoPanel);
-    const filterController = new ChromaticFilterController(bands, interactionManager);
+    interactionManager = new BandInteractionManager(
+        camera,
+        renderer.domElement,
+        buenosAiresModel.bands,
+        infoPanel
+    );
+    const filterController = new ChromaticFilterController(
+        [buenosAiresModel, valparaisoModel],
+        interactionManager
+    );
 
     SCENE_REGISTRY.infoPanel = infoPanel;
     SCENE_REGISTRY.interactionManager = interactionManager;
     SCENE_REGISTRY.filterController = filterController;
+    SCENE_REGISTRY.cameraController = cameraController;
+
+    // 4. Lógica del botón flotante superior para alternar entre Buenos Aires y Valparaíso
+    if (switchBtn) {
+        switchBtn.addEventListener("click", () => {
+            if (cameraController.transitionState !== "NONE") return;
+
+            const targetKey = SCENE_REGISTRY.activeModelKey === "buenos-aires"
+                ? "valparaiso"
+                : "buenos-aires";
+
+            const outgoingModel = SCENE_REGISTRY.getActiveModel();
+            const incomingModel = SCENE_REGISTRY.models[targetKey];
+            if (!incomingModel) return;
+
+            // Bloquear interacciones y cerrar panel activo antes de iniciar el ascenso
+            switchBtn.disabled = true;
+            interactionManager.setTransitionLocked(true);
+
+            cameraController.startModelTransition(
+                // Callback ejecutado cuando el mapa está 100% fuera del campo de visión (en ángulo contrapicado)
+                () => {
+                    outgoingModel.rootGroup.visible = false;
+                    outgoingModel.bands.forEach((b) => b.resetToRest());
+
+                    // Asegurar que las bandas, etiquetas y filtros del nuevo modelo estén 100% listos antes del descenso
+                    filterController.applyFiltersToAllModels();
+                    incomingModel.bands.forEach((b) => {
+                        b.resetToRest();
+                        if (b.label) b.label.updateTransform(camera, 0);
+                    });
+                    if (fontsReadyResolved) {
+                        incomingModel.bandLabelsById.forEach((lbl) => lbl.refreshChromaticColors());
+                    }
+
+                    incomingModel.rootGroup.visible = true;
+                    SCENE_REGISTRY.activeModelKey = targetKey;
+                    interactionManager.setActiveModelBands(incomingModel.bands);
+
+                    // Actualizar identidad geográfica y etiqueta del botón
+                    if (geoCityEl) geoCityEl.textContent = incomingModel.city;
+                    if (geoNeighborhoodEl) geoNeighborhoodEl.textContent = incomingModel.neighborhood;
+                    if (switchLabel) switchLabel.textContent = incomingModel.switchButtonText;
+                },
+                // Callback ejecutado cuando la cámara finaliza el descenso y recupera el ángulo picado
+                () => {
+                    interactionManager.setTransitionLocked(false);
+                    switchBtn.disabled = false;
+
+                    // Reproducir el reflejo de luz tipo vidrio sobre toda la superficie del nuevo modelo
+                    incomingModel.triggerSurfaceReflection();
+                }
+            );
+        });
+    }
 
     window.addEventListener("resize", () => {
         camera.aspect = window.innerWidth / window.innerHeight;
@@ -3225,24 +3770,31 @@ function initInteractiveScene() {
         const dt = Math.min((now - lastTime) * 0.001, 0.05);
         lastTime = now;
 
+        const activeModel = SCENE_REGISTRY.getActiveModel();
+
         interactionManager.update(cameraController.isDragging);
         cameraController.update(dt, interactionManager.hasActiveBandInteraction());
 
-        // Si alguna banda está en transición de filtro, actualizar cruces de bandas perpendiculares
-        let anyFilterTransition = false;
-        for (let i = 0; i < bands.length; i++) {
-            const b = bands[i];
-            const targetVis = b.isFilterEnabled ? 1.0 : 0.0;
-            if (Math.abs(b.filterVisibility - targetVis) > 0.001) {
-                anyFilterTransition = true;
-            }
-            b.update(dt, camera);
-        }
+        if (activeModel) {
+            let anyFilterTransition = false;
+            const activeBands = activeModel.bands;
 
-        if (anyFilterTransition) {
-            for (let i = 0; i < bands.length; i++) {
-                bands[i].applyVertexChromaticProfile();
+            for (let i = 0; i < activeBands.length; i++) {
+                const b = activeBands[i];
+                const targetVis = b.isFilterEnabled ? 1.0 : 0.0;
+                if (Math.abs(b.filterVisibility - targetVis) > 0.001) {
+                    anyFilterTransition = true;
+                }
+                b.update(dt, camera);
             }
+
+            if (anyFilterTransition) {
+                for (let i = 0; i < activeBands.length; i++) {
+                    activeBands[i].applyVertexChromaticProfile();
+                }
+            }
+
+            activeModel.surfaceReflection.update(dt);
         }
 
         renderer.render(scene, camera);
