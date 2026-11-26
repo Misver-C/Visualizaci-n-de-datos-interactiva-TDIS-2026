@@ -689,39 +689,892 @@ const VALPARAISO_RAW_RECORDS = [
 
 const VALPARAISO_VALIDATION = { green: 53, yellow: 46, red: 66, total: 165 };
 
-// Estructura preparada para incorporar posteriormente las estadísticas detalladas y comentarios de Valparaíso
-// sin inventar datos que no estén en los archivos adjuntos (Sección 1 y 5).
-function createPreparedValparaisoStreetDetails() {
-    const detailsMap = {};
-    VALPARAISO_RAW_RECORDS.forEach((rec) => {
-        if (rec.type === "horizontal" || rec.type === "vertical") {
-            detailsMap[rec.id] = {
-                id: rec.id,
-                name: rec.name,
-                isPendingDetailedData: true,
-                difficultyStats: {
-                    mayorDificultad: null,
-                    menorDificultad: null,
-                    mediaDificultad: null
-                },
-                urbanAspects: {
-                    estadoCallesVeredas: null,
-                    crucesOrientacion: null,
-                    ruido: null,
-                    iluminacion: null,
-                    espaciosDescanso: null
-                },
-                comentariosNegativos: [],
-                comentariosPositivos: [],
-                otrosAspectos: [],
-                emociones: []
-            };
+// ==========================================================
+// 3.2. ENCUESTAS Y TESTIMONIOS DE BARRIO PUERTO, VALPARAÍSO (56 REGISTROS)
+// ==========================================================
+// Cada fila conserva íntegramente la respuesta individual original sin inventar ni completar celdas vacías.
+// Equivalencias de bandas en el modelo 3D:
+// - "cochrane"  -> ["valpo-banda-cochrane"]
+// - "blanco"    -> ["valpo-banda-blanco"]
+// - "errazuriz" -> ["valpo-banda-errazuriz"]
+// - "serrano"   -> ["valpo-banda-serrano"]
+// - "prat"      -> ["valpo-banda-prat-sotomayor"]
+// - "sotomayor" -> ["valpo-banda-sotomayor-1", "valpo-banda-sotomayor-2", "valpo-banda-prat-sotomayor-serrano"]
+// - "clave"     -> ["valpo-banda-clave"]
+// - "goni"      -> ["valpo-banda-almte-goni"]
+// - "munoz"     -> ["valpo-banda-almte-munoz"]
+// - "perez"     -> ["valpo-banda-almte-perez"]
+// - "echaurren" -> ["valpo-referencia-echaurren"]
+
+const VALPO_BAND_GROUPS = {
+    cochrane:  ["valpo-banda-cochrane"],
+    blanco:    ["valpo-banda-blanco"],
+    errazuriz: ["valpo-banda-errazuriz"],
+    serrano:   ["valpo-banda-serrano"],
+    prat:      ["valpo-banda-prat-sotomayor"],
+    sotomayor: ["valpo-banda-sotomayor-1", "valpo-banda-sotomayor-2", "valpo-banda-prat-sotomayor-serrano"],
+    clave:     ["valpo-banda-clave"],
+    goni:      ["valpo-banda-almte-goni"],
+    munoz:     ["valpo-banda-almte-munoz"],
+    perez:     ["valpo-banda-almte-perez"],
+    echaurren: ["valpo-referencia-echaurren"]
+};
+
+function expandValpoKeys(keys) {
+    const set = new Set();
+    (keys || []).forEach((k) => {
+        const mapped = VALPO_BAND_GROUPS[k];
+        if (mapped) {
+            mapped.forEach((id) => set.add(id));
         }
     });
+    return Array.from(set);
+}
+
+const VALPARAISO_SURVEY_RESPONSES = [
+    {
+        id: 1, dificultad: 5,
+        mayorRaw: "Cochrane", menorRaw: "Serrano,Prat",
+        mayorKeys: ["cochrane"], menorKeys: ["serrano", "prat"],
+        veredas: "si", cruces: "si", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Comodidad ya que vive ahí",
+        comentario: "Prefiere caminar más desde Serrano a Prat incluso bajando tras pasar por Sotomayor que hacer un viaje corto por Cochrane o Blanco.",
+        testimonios: [
+            { texto: "Prefiere caminar más desde Serrano a Prat incluso bajando tras pasar por Sotomayor que hacer un viaje corto por Cochrane o Blanco.", tipo: "negativo", keys: ["cochrane", "blanco"] },
+            { texto: "Prefiere caminar desde Serrano a Prat pasando por Sotomayor por mayor comodidad.", tipo: "positivo", keys: ["serrano", "prat", "sotomayor"] }
+        ]
+    },
+    {
+        id: 2, dificultad: 4,
+        mayorRaw: "Sotomayor", menorRaw: "Almte. Muños, Blanco",
+        mayorKeys: ["sotomayor"], menorKeys: ["munoz", "blanco"],
+        veredas: "no", cruces: "si", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Confianza",
+        comentario: "Prefiere cruces declarados que adivinar por dónde cruzar.",
+        testimonios: [
+            { texto: "Prefiere cruces declarados que adivinar por dónde cruzar.", tipo: "negativo", keys: ["sotomayor", "munoz", "blanco"] }
+        ]
+    },
+    {
+        id: 3, dificultad: 4,
+        mayorRaw: "Cochrane", menorRaw: "Serrano, Sotomayor",
+        mayorKeys: ["cochrane"], menorKeys: ["serrano", "sotomayor"],
+        veredas: "no", cruces: "no", ruido: "no", iluminacion: "no", descanso: "si",
+        otro: null, emociones: "Molestia",
+        comentario: "Le molesta saber que las bancas para descansar están ocupadas por vendedores.",
+        testimonios: [
+            { texto: "Le molesta saber que las bancas para descansar están ocupadas por vendedores.", tipo: "negativo", keys: ["cochrane", "serrano", "sotomayor"] }
+        ]
+    },
+    {
+        id: 4, dificultad: 2,
+        mayorRaw: "Blanco", menorRaw: "Sotomayor, Errazúriz",
+        mayorKeys: ["blanco"], menorKeys: ["sotomayor", "errazuriz"],
+        veredas: "si", cruces: "no", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Nostalgia",
+        comentario: "Vivió aquí en su juventud y le apena las condiciones en las que se encuentra Barrio Puerto.",
+        testimonios: [
+            { texto: "Vivió aquí en su juventud y le apena las condiciones en las que se encuentra Barrio Puerto.", tipo: "mixto", keys: ["blanco", "sotomayor", "errazuriz"] }
+        ]
+    },
+    {
+        id: 5, dificultad: 4,
+        mayorRaw: "Blanco,Clave, Cochrane, Echaurren", menorRaw: "Sotomayor, Serrano",
+        mayorKeys: ["blanco", "clave", "cochrane", "echaurren"], menorKeys: ["sotomayor", "serrano"],
+        veredas: "si", cruces: "si", ruido: "no", iluminacion: "no", descanso: "si",
+        otro: null, emociones: "Inseguridad",
+        comentario: null, testimonios: []
+    },
+    {
+        id: 6, dificultad: 3,
+        mayorRaw: "Almte. Goñi, Clave", menorRaw: "Sotomayor, Serrano, Mall",
+        mayorKeys: ["goni", "clave"], menorKeys: ["sotomayor", "serrano"],
+        espacios: [{ nombre: "Mall", rol: "Menor", keys: [] }],
+        veredas: "si", cruces: "no", ruido: "si", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Molestia y cansancio",
+        comentario: null, testimonios: []
+    },
+    {
+        id: 7, dificultad: 4,
+        mayorRaw: "Almte. Goñi, Clave, Blanco, Cochrane", menorRaw: "Sotomayor, Serrano, Errazúriz",
+        mayorKeys: ["goni", "clave", "blanco", "cochrane"], menorKeys: ["sotomayor", "serrano", "errazuriz"],
+        veredas: "si", cruces: "si", ruido: "no", iluminacion: "no", descanso: "si",
+        otro: null, emociones: "Cansancio",
+        comentario: "Menciona pocos lugares para descansar.",
+        testimonios: [
+            { texto: "Menciona pocos lugares para descansar.", tipo: "negativo", keys: ["goni", "clave", "blanco", "cochrane", "sotomayor", "serrano", "errazuriz"] }
+        ]
+    },
+    {
+        id: 8, dificultad: 2,
+        mayorRaw: "Cruces Sotomayor a Cochrane, Blanco y Serrano", menorRaw: "Prat, Sotomayor, Serrano",
+        mayorKeys: [], menorKeys: ["prat", "sotomayor", "serrano"],
+        crucesEsp: [{ nombre: "Cruces Sotomayor a Cochrane, Blanco y Serrano", rol: "Mayor", keys: ["sotomayor", "cochrane", "blanco", "serrano"] }],
+        veredas: "no", cruces: "si", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: "Tránsito vehicular", emociones: "Inseguridad",
+        comentario: "Sobre todo se siente insegura al cruzar las calles.",
+        testimonios: [
+            { texto: "Sobre todo se siente insegura al cruzar las calles (Cruces Sotomayor a Cochrane, Blanco y Serrano).", tipo: "negativo", keys: ["sotomayor", "cochrane", "blanco", "serrano", "prat"] }
+        ]
+    },
+    {
+        id: 9, dificultad: 3,
+        mayorRaw: "Almte. Goñi, Clave, Blanco, Cochrane", menorRaw: "Prat, Sotomayor, Serrano",
+        mayorKeys: ["goni", "clave", "blanco", "cochrane"], menorKeys: ["prat", "sotomayor", "serrano"],
+        veredas: "si", cruces: "no", ruido: "no", iluminacion: "si", descanso: "si",
+        otro: "Seguridad", emociones: "Inseguridad",
+        comentario: null, testimonios: []
+    },
+    {
+        id: 10, dificultad: 1,
+        mayorRaw: "Cochrane", menorRaw: "Serrano",
+        mayorKeys: ["cochrane"], menorKeys: ["serrano"],
+        veredas: "si", cruces: "no", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Pena por su estado",
+        comentario: null, testimonios: []
+    },
+    {
+        id: 11, dificultad: 2,
+        mayorRaw: "Blanco", menorRaw: "Serrano",
+        mayorKeys: ["blanco"], menorKeys: ["serrano"],
+        veredas: "si", cruces: "no", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Pena por su estado",
+        comentario: null, testimonios: []
+    },
+    {
+        id: 12, dificultad: 1,
+        mayorRaw: "Cochrane", menorRaw: "Serrano",
+        mayorKeys: ["cochrane"], menorKeys: ["serrano"],
+        veredas: "si", cruces: "no", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Me encanta",
+        comentario: null, testimonios: []
+    },
+    {
+        id: 13, dificultad: 2,
+        mayorRaw: "Blanco", menorRaw: "Serrano",
+        mayorKeys: ["blanco"], menorKeys: ["serrano"],
+        veredas: "si", cruces: "si", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Le agrada",
+        comentario: null, testimonios: []
+    },
+    {
+        id: 14, dificultad: 2,
+        mayorRaw: "Cochrane", menorRaw: "Serrano",
+        mayorKeys: ["cochrane"], menorKeys: ["serrano"],
+        veredas: "si", cruces: "no", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Costumbre",
+        comentario: null, testimonios: []
+    },
+    {
+        id: 15, dificultad: 1,
+        mayorRaw: "Cochrane", menorRaw: "Serrano, Sotomayor, Blanco, Errázuriz",
+        mayorKeys: ["cochrane"], menorKeys: ["serrano", "sotomayor", "blanco", "errazuriz"],
+        veredas: "no", cruces: "no", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: "Seguridad", emociones: "Me encanta, lo adoro, nací aquí.",
+        comentario: "Salgo todos los días, me encanta, camino por todas las calles, conozco a los malandrines.",
+        testimonios: [
+            { texto: "Salgo todos los días, me encanta, camino por todas las calles, conozco a los malandrines.", tipo: "positivo", keys: ["cochrane", "serrano", "sotomayor", "blanco", "errazuriz"] }
+        ]
+    },
+    {
+        id: 16, dificultad: 1,
+        mayorRaw: "Todos de noche", menorRaw: "Todos de día",
+        mayorKeys: [], menorKeys: [],
+        generalTag: "Todos de noche / Todos de día",
+        veredas: "si", cruces: "no", ruido: "no", iluminacion: "si", descanso: "si",
+        otro: null, emociones: "Lo bueno, lo malo, uno se queda con lo antiguo. Yo puedo caminar de noche, pero los asaltos ocurren.",
+        comentario: "Nacido y criado, uno relaciona el recuerdo a la década que marca la vida. Me es cómodo, yo bajo del cerro y voy caminando al centro, me voy tranquilo.",
+        testimonios: [
+            { texto: "Nacido y criado, uno relaciona el recuerdo a la década que marca la vida. Me es cómodo, yo bajo del cerro y voy caminando al centro, me voy tranquilo (aunque de noche los asaltos ocurren).", tipo: "mixto", keys: [], esGeneral: true }
+        ]
+    },
+    {
+        id: 17, dificultad: 5,
+        mayorRaw: "Todos", menorRaw: "",
+        mayorKeys: [], menorKeys: [],
+        generalTag: "Todos",
+        veredas: "si", cruces: "si", ruido: "no", iluminacion: "si", descanso: "si",
+        otro: null, emociones: "Disconformidad y decepción",
+        comentario: "Soy un argentino que viene de turista, está todo mal señalizado, las calles están sucias y dejan mucho que desear.",
+        testimonios: [
+            { texto: "Soy un argentino que viene de turista, está todo mal señalizado, las calles están sucias y dejan mucho que desear.", tipo: "negativo", keys: [], esGeneral: true }
+        ]
+    },
+    {
+        id: 18, dificultad: 3,
+        mayorRaw: "Clave", menorRaw: "Serrano y Sotomayor",
+        mayorKeys: ["clave"], menorKeys: ["serrano", "sotomayor"],
+        veredas: "si", cruces: "si", ruido: "si", iluminacion: "si", descanso: "si",
+        otro: "«No hay nada» (Falta de espacios para adultos mayores)", emociones: "Interés por conversar",
+        comentario: "Alejandro, 72 años. «En las calles no caben las sillas de ruedas», «El único acceso amplio es Sotomayor», «Hace falta lugar adecuado para la gente mayor». Los arreglos de la plaza suman 1300 millones. ¿Dónde uno se sienta? ¿Dónde traigo a mis nietos? La ciudad necesita espacios de esparcimiento y descanso.",
+        testimonios: [
+            { texto: "«En las calles no caben las sillas de ruedas». «Hace falta lugar adecuado para la gente mayor. ¿Dónde uno se sienta? ¿Dónde traigo a mis nietos? La ciudad necesita espacios de esparcimiento y descanso».", tipo: "negativo", keys: ["clave", "serrano"] },
+            { texto: "«El único acceso amplio es Sotomayor. Si el adulto mayor sale, le ayuda a la familia».", tipo: "positivo", keys: ["sotomayor"] }
+        ]
+    },
+    {
+        id: 19, dificultad: 2,
+        mayorRaw: "Clave", menorRaw: "",
+        mayorKeys: ["clave"], menorKeys: [],
+        veredas: null, cruces: null, ruido: null, iluminacion: null, descanso: null,
+        otro: "«Nunca me ha pasado nada»", emociones: null,
+        comentario: "«Ahora camino por Clave porque como cambiaron los recorridos de las micros, pasa locomoción, pero no me gusta caminar la calle entera, los ladrones arrancan por Clave, tienen calles, esquinas para escapar». «Nunca me ha pasado nada, para mí es seguro porque todos te conocen, yo tengo 67, toda la vida he vivido cerca de la plaza, que me encanta pero está deteriorado, algunos pintan murales y se ve lindo, pero no me gustan los rayados».",
+        testimonios: [
+            { texto: "«Ahora camino por Clave porque como cambiaron los recorridos de las micros, pasa locomoción, pero no me gusta caminar la calle entera, los ladrones arrancan por Clave, tienen calles y esquinas para escapar».", tipo: "negativo", keys: ["clave"] },
+            { texto: "«Nunca me ha pasado nada, para mí es seguro porque todos te conocen, toda la vida he vivido cerca de la plaza, que me encanta pero está deteriorado; algunos pintan murales y se ve lindo, pero no me gustan los rayados».", tipo: "mixto", keys: ["clave"] }
+        ]
+    },
+    {
+        id: 20, dificultad: 5,
+        mayorRaw: "Todos", menorRaw: "",
+        mayorKeys: [], menorKeys: [],
+        generalTag: "Todos",
+        veredas: "si", cruces: "si", ruido: "si", iluminacion: "si", descanso: "si",
+        otro: "«Mucho miedo»", emociones: null,
+        comentario: "«He vivido toda mi vida aquí». Mujer.",
+        testimonios: [
+            { texto: "«He vivido toda mi vida aquí» (expresa mucho miedo al circular).", tipo: "negativo", keys: [], esGeneral: true }
+        ]
+    },
+    {
+        id: 21, dificultad: 1,
+        mayorRaw: "", menorRaw: "",
+        mayorKeys: [], menorKeys: [],
+        veredas: "no", cruces: "no", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: "«Me encanta»", emociones: null,
+        comentario: "«Llegué hace dos años». Mujer.",
+        testimonios: [
+            { texto: "«Llegué hace dos años. Me encanta».", tipo: "positivo", keys: [], esGeneral: true }
+        ]
+    },
+    {
+        id: 22, dificultad: 1,
+        mayorRaw: "", menorRaw: "",
+        mayorKeys: [], menorKeys: [],
+        commentKeys: ["blanco"],
+        veredas: "no", cruces: "no", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: "«Uno ya cacha» (Mochila por delante)", emociones: null,
+        comentario: "Mujer. Yo hago gimnasia, encuentro que Blanco es una calle piola; sobre la seguridad, uno ya cacha (indica su mochila colgada por delante).",
+        testimonios: [
+            { texto: "«Yo hago gimnasia, encuentro que Blanco es una calle piola; sobre la seguridad, uno ya cacha» (lleva su mochila colgada por delante por precaución).", tipo: "mixto", keys: ["blanco"] }
+        ]
+    },
+    {
+        id: 23, dificultad: 5,
+        mayorRaw: "Cochrane", menorRaw: "Prat",
+        mayorKeys: ["cochrane"], menorKeys: ["prat"],
+        commentKeys: ["errazuriz"],
+        veredas: "si", cruces: "si", ruido: "si", iluminacion: "no", descanso: "si",
+        otro: null, emociones: null,
+        comentario: "Me gusta Prat, en Cochrane se estacionan los autos en las dos veredas. En Errázuriz no transita. «Me encanta (el Barrio Puerto), transito con cuidado, es un 5 de difícil, las calles están en mal estado».",
+        testimonios: [
+            { texto: "«En Cochrane se estacionan los autos en las dos veredas. Transito con cuidado, es un 5 de difícil, las calles están en mal estado».", tipo: "negativo", keys: ["cochrane"] },
+            { texto: "«Me gusta Prat. Me encanta el Barrio Puerto».", tipo: "positivo", keys: ["prat"] },
+            { texto: "En Errázuriz prefiere no transitar por el mal estado de las calles.", tipo: "negativo", keys: ["errazuriz"] }
+        ]
+    },
+    {
+        id: 24, dificultad: 5,
+        mayorRaw: "Blanco", menorRaw: "",
+        mayorKeys: ["blanco"], menorKeys: [],
+        veredas: "si", cruces: "si", ruido: "no", iluminacion: "si", descanso: "si",
+        otro: "Abandono", emociones: "Preocupación",
+        comentario: "«Todas las calles están rotas, Blanco está abandonado, todo destruido, no hay propuestas para el escándalo del patrimonio».",
+        testimonios: [
+            { texto: "«Todas las calles están rotas, Blanco está abandonado, todo destruido, no hay propuestas para el escándalo del patrimonio».", tipo: "negativo", keys: ["blanco"] }
+        ]
+    },
+    {
+        id: 25, dificultad: 5,
+        mayorRaw: "Todas", menorRaw: "Prat",
+        mayorKeys: [], menorKeys: ["prat"],
+        generalTag: "Todas",
+        veredas: "si", cruces: "si", ruido: "si", iluminacion: "si", descanso: "si",
+        otro: "Es muy difícil", emociones: null,
+        comentario: "«Yo tengo 85, voy al gimnasio, sobre las calles del Barrio Puerto no las recomiendo jamás, es muy difícil».",
+        testimonios: [
+            { texto: "«Yo tengo 85, voy al gimnasio, sobre las calles del Barrio Puerto no las recomiendo jamás, es muy difícil» (rescata Prat como menor dificultad).", tipo: "negativo", keys: ["prat"], esGeneral: true }
+        ]
+    },
+    {
+        id: 26, dificultad: 1,
+        mayorRaw: "Cochrane", menorRaw: "Serrano",
+        mayorKeys: ["cochrane"], menorKeys: ["serrano"],
+        veredas: "si", cruces: "no", ruido: "no", iluminacion: "si", descanso: "no",
+        otro: "Delincuencia", emociones: "Tranquilidad",
+        comentario: "«No tengo ninguna discapacidad, soy buena para caminar, me encanta el Barrio Puerto, en Viña me desespero porque no conozco, soy nacida y criada en Valparaíso».",
+        testimonios: [
+            { texto: "«No tengo ninguna discapacidad, soy buena para caminar, me encanta el Barrio Puerto, en Viña me desespero porque no conozco, soy nacida y criada en Valparaíso».", tipo: "positivo", keys: ["cochrane", "serrano"] }
+        ]
+    },
+    {
+        id: 27, dificultad: 1,
+        mayorRaw: "Blanco", menorRaw: "Serrano, Cochrane",
+        mayorKeys: ["blanco"], menorKeys: ["serrano", "cochrane"],
+        espacios: [{ nombre: "Plaza Echaurren", rol: "Referencia", keys: ["echaurren"] }],
+        veredas: "si", cruces: "si", ruido: "no", iluminacion: "si", descanso: "si",
+        otro: "Paradero de colectivos y taxis en Plaza Echaurren", emociones: "Se sentía seguro de lo que hablaba",
+        comentario: "Explicó que los colectivos llegaban hasta Cordillera y los demás eran taxis ($1500). «Serrano es la más fácil de caminar».",
+        testimonios: [
+            { texto: "«Serrano es la más fácil de caminar».", tipo: "positivo", keys: ["serrano"] },
+            { texto: "En el paradero de Plaza Echaurren los colectivos llegan hasta Cordillera y los taxis asisten a personas mayores.", tipo: "positivo", keys: ["echaurren", "cochrane", "blanco"] }
+        ]
+    },
+    {
+        id: 28, dificultad: 1,
+        mayorRaw: "Blanco", menorRaw: "Serrano, Cochrane",
+        mayorKeys: ["blanco"], menorKeys: ["serrano", "cochrane"],
+        espacios: [{ nombre: "Plaza Echaurren", rol: "Referencia", keys: ["echaurren"] }],
+        veredas: "no", cruces: "no", ruido: "no", iluminacion: "si", descanso: "si",
+        otro: "Paradero de colectivos y taxis en Plaza Echaurren", emociones: "Explicaba sus ideas conversando con su amigo de 87 años",
+        comentario: "«Hay un poco de inseguridad, somos habituales, aquí no entran los turistas». «Cochrane es caminable, Blanco no, es muy solo».",
+        testimonios: [
+            { texto: "«Hay un poco de inseguridad, somos habituales, aquí no entran los turistas. Blanco no es caminable, es muy solo».", tipo: "negativo", keys: ["blanco", "echaurren"] },
+            { texto: "«Cochrane y Serrano son caminables».", tipo: "positivo", keys: ["cochrane", "serrano"] }
+        ]
+    },
+    {
+        id: 29, dificultad: 2,
+        mayorRaw: "Ninguno", menorRaw: "",
+        mayorKeys: [], menorKeys: [],
+        generalTag: "Ninguno",
+        espacios: [{ nombre: "Plaza Echaurren", rol: "Referencia", keys: ["echaurren"] }],
+        veredas: "si", cruces: "no", ruido: "no", iluminacion: "si", descanso: "si",
+        otro: "Desorden administrativo, suciedad, droga", emociones: "Enojo con el mundo, pero aceptó acceder a la encuesta",
+        comentario: "83 años, sentado en la Plaza Echaurren esperando a su hijo para ir a pescar: «Me da nostalgia el Barrio Puerto, yo soy de toda la vida de aquí, soy jibiero, tengo una embarcación del paralelo 33. No te confíes de nadie».",
+        testimonios: [
+            { texto: "«Me da nostalgia el Barrio Puerto, yo soy de toda la vida de aquí, soy jibiero, tengo una embarcación. No te confíes de nadie» (sentado en Plaza Echaurren).", tipo: "mixto", keys: ["echaurren"], esGeneral: true }
+        ]
+    },
+    {
+        id: 30, dificultad: 1,
+        mayorRaw: "Ninguno", menorRaw: "",
+        mayorKeys: [], menorKeys: [],
+        generalTag: "Ninguno",
+        espacios: [{ nombre: "Plaza Echaurren", rol: "Referencia", keys: ["echaurren"] }],
+        veredas: "no", cruces: "no", ruido: "no", iluminacion: "si", descanso: "si",
+        otro: "Compañía del sector", emociones: "Nostalgia y disposición en conversar",
+        comentario: "«Muy lindo el recuerdo, siempre te encuentras con la misma gente, aquí en la plaza nos cuidamos, les llamamos la atención a la gente que vemos destruyendo. Es pacífico, nos conocemos».",
+        testimonios: [
+            { texto: "«Muy lindo el recuerdo, siempre te encuentras con la misma gente, aquí en la plaza nos cuidamos, les llamamos la atención a la gente que vemos destruyendo. Es pacífico, nos conocemos».", tipo: "positivo", keys: ["echaurren"], esGeneral: true }
+        ]
+    },
+    {
+        id: 31, dificultad: 3,
+        mayorRaw: "", menorRaw: "",
+        mayorKeys: [], menorKeys: [],
+        veredas: "si", cruces: "si", ruido: "si", iluminacion: "si", descanso: "si",
+        otro: "Movilidad colectiva en adultos mayores", emociones: "Disposición en conversar",
+        comentario: "52 años: «Uso mucho la micro, los choferes andan drogados... el que haya harto cerro impide la movilidad, es una aventura, y el transporte no para; ven a la abuelita con el burrito y le hacen el quite».",
+        testimonios: [
+            { texto: "«El que haya harto cerro impide la movilidad, es una aventura, y el transporte público no para; ven a la abuelita con el burrito y le hacen el quite».", tipo: "negativo", keys: [], esGeneral: true }
+        ]
+    },
+    {
+        id: 32, dificultad: 5,
+        mayorRaw: "Todos", menorRaw: "",
+        mayorKeys: [], menorKeys: [],
+        generalTag: "Todos",
+        espacios: [{ nombre: "Plaza Echaurren", rol: "Referencia", keys: ["echaurren"] }],
+        veredas: "si", cruces: "si", ruido: "no", iluminacion: "si", descanso: "si",
+        otro: "Estado de los árboles en la Plaza Echaurren", emociones: "Tranquilidad, sentado con sus amigos",
+        comentario: "«Es difícil caminar porque las raíces de los árboles levantan el suelo y eso lo hace irregular, están llenas de hoyos las calles, está abandonado, dejado».",
+        testimonios: [
+            { texto: "«Es difícil caminar porque las raíces de los árboles levantan el suelo en la Plaza Echaurren y eso lo hace irregular; están llenas de hoyos las calles, está abandonado, dejado».", tipo: "negativo", keys: ["echaurren"], esGeneral: true }
+        ]
+    },
+    {
+        id: 33, dificultad: 5,
+        mayorRaw: "Todos", menorRaw: "",
+        mayorKeys: [], menorKeys: [],
+        generalTag: "Todos",
+        commentKeys: ["serrano"],
+        veredas: "si", cruces: "si", ruido: "si", iluminacion: "si", descanso: "si",
+        otro: "Falta de espacios con sombra", emociones: "Aceptación, ligero optimismo y agradecimiento con Dios",
+        comentario: "Lorena, 54 años (vende en la vereda de Serrano): «En el entorno todos me conocen, me ubican todos. Bajo todos los días tipo 3-4 y a las 5 me encierro, sólo ando de día.Aquí me regalaron este balde con almohada y me siento. Tengo que estar mirando mis cosas, el otro día una persona en situación de calle me pateó las cosas».",
+        testimonios: [
+            { texto: "«Me dedico a mi trabajo en la vereda de Serrano, en el entorno todos me conocen, me ubican todos».", tipo: "positivo", keys: ["serrano"] },
+            { texto: "«Sólo ando de día, a las 5 me encierro. Me siento en un balde con almohada y tengo que estar mirando mis cosas por agresiones en la calle».", tipo: "negativo", keys: ["serrano"], esGeneral: true }
+        ]
+    },
+    {
+        id: 34, dificultad: 2,
+        mayorRaw: "Cochrane", menorRaw: "Serrano, Prat",
+        mayorKeys: ["cochrane"], menorKeys: ["serrano", "prat"],
+        veredas: "si", cruces: "no", ruido: "si", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Costumbre y cariño",
+        comentario: "Baja todos los sábados al mercado a comprar pescado. «En Cochrane las micros pasan pegadas a la vereda». Mujer.",
+        testimonios: [
+            { texto: "«En Cochrane las micros pasan pegadas a la vereda».", tipo: "negativo", keys: ["cochrane"] },
+            { texto: "Baja todos los sábados con costumbre y cariño al mercado por Serrano y Prat.", tipo: "positivo", keys: ["serrano", "prat"] }
+        ]
+    },
+    {
+        id: 35, dificultad: 4,
+        mayorRaw: "Blanco, Clave", menorRaw: "Serrano",
+        mayorKeys: ["blanco", "clave"], menorKeys: ["serrano"],
+        veredas: "si", cruces: "si", ruido: "no", iluminacion: "no", descanso: "si",
+        otro: null, emociones: "Inseguridad y cansancio",
+        comentario: "«Las baldosas sueltas son una trampa, uno pisa y salta el agua sucia». «Para sentarse hay que irse a la plaza y casi siempre está llena». Hombre.",
+        testimonios: [
+            { texto: "«Las baldosas sueltas son una trampa, uno pisa y salta el agua sucia. Para sentarse hay que irse a la plaza y casi siempre está llena».", tipo: "negativo", keys: ["blanco", "clave", "serrano"] }
+        ]
+    },
+    {
+        id: 36, dificultad: 4,
+        mayorRaw: "Cochrane, Almte. Goñi", menorRaw: "Sotomayor",
+        mayorKeys: ["cochrane", "goni"], menorKeys: ["sotomayor"],
+        veredas: "si", cruces: "si", ruido: "si", iluminacion: "no", descanso: "si",
+        otro: null, emociones: "Preocupación (por las caídas)",
+        comentario: "«Por Sotomayor se puede ir más tranquila porque es ancha, pero para cruzar hay que esperar harto». Mujer.",
+        testimonios: [
+            { texto: "«Por Sotomayor se puede ir más tranquila porque es ancha».", tipo: "positivo", keys: ["sotomayor"] },
+            { texto: "«Para cruzar hay que esperar harto» (preocupación por caídas en Cochrane y Almte. Goñi).", tipo: "negativo", keys: ["cochrane", "goni", "sotomayor"] }
+        ]
+    },
+    {
+        id: 37, dificultad: 5,
+        mayorRaw: "Todos, sobre todo Cochrane y Blanco", menorRaw: "Prat",
+        mayorKeys: ["cochrane", "blanco"], menorKeys: ["prat"],
+        generalTag: "Todos",
+        veredas: "si", cruces: "si", ruido: "si", iluminacion: "no", descanso: "si",
+        otro: "Tiempo de los semáforos", emociones: "Miedo y rabia",
+        comentario: "«Me operaron hace tres meses y salir al centro es una pesadilla, el semáforo dura nada y con la muleta no alcanzo a cruzar». Cruza solo cuando hay más gente esperando. Mujer.",
+        testimonios: [
+            { texto: "«Me operaron hace tres meses y salir al centro es una pesadilla, el semáforo dura nada y con la muleta no alcanzo a cruzar» (cruza solo cuando hay más gente esperando).", tipo: "negativo", keys: ["cochrane", "blanco", "prat"], esGeneral: true }
+        ]
+    },
+    {
+        id: 38, dificultad: 3,
+        mayorRaw: "Cochrane, Almte. Muñoz", menorRaw: "Plaza Sotomayor, Serrano",
+        mayorKeys: ["cochrane", "munoz"], menorKeys: ["serrano"],
+        espacios: [{ nombre: "Plaza Sotomayor", rol: "Menor", keys: ["sotomayor"] }],
+        veredas: "si", cruces: "si", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Desorientación",
+        comentario: "«Hace años que no venía, el barrio es lindo pero está muy descuidado».",
+        testimonios: [
+            { texto: "«Hace años que no venía, el barrio es lindo pero está muy descuidado».", tipo: "mixto", keys: ["cochrane", "munoz", "serrano", "sotomayor"] }
+        ]
+    },
+    {
+        id: 39, dificultad: 2,
+        mayorRaw: "Cochrane", menorRaw: "Serrano",
+        mayorKeys: ["cochrane"], menorKeys: ["serrano"],
+        veredas: "si", cruces: "no", ruido: "si", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Resignación",
+        comentario: "Mujer, vende en Serrano hace como 20 años. «Una ya se acostumbró, pero los sábados se llena de gente y la vereda no da». «Los parlantes de los locales a veces no dejan ni conversar».",
+        testimonios: [
+            { texto: "«Una ya se acostumbró, pero los sábados se llena de gente y la vereda no da. Los parlantes de los locales a veces no dejan ni conversar».", tipo: "negativo", keys: ["cochrane", "serrano"] }
+        ]
+    },
+    {
+        id: 40, dificultad: 1,
+        mayorRaw: "Ninguno", menorRaw: "Serrano, Sotomayor, Prat, Errázuriz",
+        mayorKeys: [], menorKeys: ["serrano", "sotomayor", "prat", "errazuriz"],
+        generalTag: "Ninguno",
+        espacios: [{ nombre: "Plaza Echaurren", rol: "Referencia", keys: ["echaurren"] }],
+        veredas: "no", cruces: "no", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: "Miedo a las caídas", emociones: "Tranquilidad, me siento en casa",
+        comentario: "Hombre, vive en el sector desde niño y se junta con amigos en la Plaza Echaurren los sábados. «Uno ya sabe por dónde ir, el que viene de afuera se pierde».",
+        testimonios: [
+            { texto: "Vive en el sector desde niño y se junta con amigos en la Plaza Echaurren los sábados: «Uno ya sabe por dónde ir, me siento en casa; el que viene de afuera se pierde».", tipo: "positivo", keys: ["serrano", "sotomayor", "prat", "errazuriz", "echaurren"] }
+        ]
+    },
+    {
+        id: 41, dificultad: 5,
+        mayorRaw: "Todas", menorRaw: "Sotomayor",
+        mayorKeys: [], menorKeys: ["sotomayor"],
+        generalTag: "Todas",
+        veredas: "si", cruces: "si", ruido: "no", iluminacion: "si", descanso: "si",
+        otro: null, emociones: "Miedo e impotencia",
+        comentario: "«Antes caminaba solo hasta el puerto, ahora ni a la esquina me atrevo».",
+        testimonios: [
+            { texto: "«Antes caminaba solo hasta el puerto, ahora ni a la esquina me atrevo».", tipo: "negativo", keys: ["sotomayor"], esGeneral: true }
+        ]
+    },
+    {
+        id: 42, dificultad: 3,
+        mayorRaw: "Clave, Almte. Goñi", menorRaw: "Serrano, Sotomayor",
+        mayorKeys: ["clave", "goni"], menorKeys: ["serrano", "sotomayor"],
+        veredas: "si", cruces: "no", ruido: "no", iluminacion: "no", descanso: "si",
+        otro: "Falta de sombra", emociones: "Cansancio y calor",
+        comentario: null, testimonios: []
+    },
+    {
+        id: 43, dificultad: 4,
+        mayorRaw: "Cochrane con Sotomayor, Blanco", menorRaw: "Prat",
+        mayorKeys: ["blanco"], menorKeys: ["prat"],
+        crucesEsp: [{ nombre: "Cruce Cochrane con Sotomayor", rol: "Mayor", keys: ["cochrane", "sotomayor"] }],
+        veredas: "si", cruces: "si", ruido: "si", iluminacion: "si", descanso: "si",
+        otro: "Locomoción y paraderos", emociones: "Molestia y ansiedad",
+        comentario: "«Las micros no paran donde uno les hace la seña, hay que subirse casi corriendo». «No hay paradero con techo ni dónde sentarse». Hombre.",
+        testimonios: [
+            { texto: "«Las micros no paran donde uno les hace la seña, hay que subirse casi corriendo. No hay paradero con techo ni dónde sentarse».", tipo: "negativo", keys: ["cochrane", "sotomayor", "blanco", "prat"] }
+        ]
+    },
+    {
+        id: 44, dificultad: 3,
+        mayorRaw: "Cochrane, Errázuriz", menorRaw: "Serrano",
+        mayorKeys: ["cochrane", "errazuriz"], menorKeys: ["serrano"],
+        veredas: "si", cruces: "si", ruido: "si", iluminacion: "no", descanso: "si",
+        otro: null, emociones: "Preocupación",
+        comentario: "«En Serrano por lo menos se puede andar».",
+        testimonios: [
+            { texto: "«En Serrano por lo menos se puede andar» (en contraste con Cochrane y Errázuriz).", tipo: "positivo", keys: ["serrano"] },
+            { texto: "Preocupación al transitar por Cochrane y Errázuriz por estado de veredas, cruces, ruido y falta de descanso.", tipo: "negativo", keys: ["cochrane", "errazuriz"] }
+        ]
+    },
+    {
+        id: 45, dificultad: 1,
+        mayorRaw: "Ninguno", menorRaw: "Serrano, Sotomayor",
+        mayorKeys: [], menorKeys: ["serrano", "sotomayor"],
+        commentKeys: ["blanco"],
+        generalTag: "Ninguno",
+        veredas: "no", cruces: "no", ruido: "si", iluminacion: "si", descanso: "si",
+        otro: "Delincuencia de noche", emociones: "Nostalgia y pena",
+        comentario: "Hombre, jubilado, trabajó en el puerto de joven. «Antes esto era otra cosa, había movimiento de verdad, ahora está botado». «De día no tengo problema, de noche no ando ni loco por Blanco».",
+        testimonios: [
+            { texto: "«Antes esto era otra cosa, había movimiento de verdad, ahora está botado. De día no tengo problema, de noche no ando ni loco por Blanco».", tipo: "negativo", keys: ["blanco"] },
+            { texto: "De día transita sin problema por Serrano y Sotomayor.", tipo: "positivo", keys: ["serrano", "sotomayor"] }
+        ]
+    },
+    {
+        id: 46, dificultad: 5,
+        mayorRaw: "Todas", menorRaw: "Sotomayor",
+        mayorKeys: [], menorKeys: ["sotomayor"],
+        generalTag: "Todas",
+        veredas: "si", cruces: "si", ruido: "si", iluminacion: "si", descanso: "si",
+        otro: null, emociones: "Frustración e impotencia",
+        comentario: "«Solo se puede por Sotomayor y aun así hay que esquivar hoyos». La cuidadora cuenta que no salen los días de lluvia.",
+        testimonios: [
+            { texto: "«Solo se puede por Sotomayor y aun así hay que esquivar hoyos» (la cuidadora cuenta que no salen los días de lluvia).", tipo: "mixto", keys: ["sotomayor"], esGeneral: true }
+        ]
+    },
+    {
+        id: 47, dificultad: 4,
+        mayorRaw: "Prat, Sotomayor Serrano", menorRaw: "Blanco, Errázuriz",
+        mayorKeys: ["prat", "sotomayor", "serrano"], menorKeys: ["blanco", "errazuriz"],
+        veredas: "si", cruces: "si", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Sorpresa y atención",
+        comentario: null, testimonios: []
+    },
+    {
+        id: 48, dificultad: 3,
+        mayorRaw: "Cochrane, Sotomayor", menorRaw: "Errázuriz",
+        mayorKeys: ["cochrane", "sotomayor"], menorKeys: ["errazuriz"],
+        veredas: "no", cruces: "si", ruido: "si", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Desorientación y atención activa",
+        comentario: null, testimonios: []
+    },
+    {
+        id: 49, dificultad: 2,
+        mayorRaw: "Prat, Errázuriz blanco", menorRaw: "Cochrane a la izquierda y Serrano",
+        mayorKeys: ["prat", "errazuriz", "blanco"], menorKeys: ["cochrane", "serrano"],
+        veredas: "no", cruces: "no", ruido: "si", iluminacion: "si", descanso: "no",
+        otro: null, emociones: "Miedo",
+        comentario: "En general, busca comodidad.",
+        testimonios: [
+            { texto: "En general, busca comodidad al elegir por dónde caminar (prefiere Cochrane a la izquierda y Serrano frente a Prat, Errázuriz y Blanco).", tipo: "mixto", keys: ["prat", "errazuriz", "blanco", "cochrane", "serrano"] }
+        ]
+    },
+    {
+        id: 50, dificultad: 2,
+        mayorRaw: "Blanco", menorRaw: "Prat, Plaza Sotomayor",
+        mayorKeys: ["blanco"], menorKeys: ["prat"],
+        espacios: [{ nombre: "Plaza Sotomayor", rol: "Menor", keys: ["sotomayor"] }],
+        veredas: "si", cruces: "no", ruido: "si", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Desagrado",
+        comentario: "Menciona veredas con excremento de perro.",
+        testimonios: [
+            { texto: "Menciona veredas con excremento de perro en Blanco.", tipo: "negativo", keys: ["blanco"] }
+        ]
+    },
+    {
+        id: 51, dificultad: 4,
+        mayorRaw: "Cruce de Cochrane con Sotomayor", menorRaw: "Serrano",
+        mayorKeys: [], menorKeys: ["serrano"],
+        crucesEsp: [{ nombre: "Cruce de Cochrane con Sotomayor", rol: "Mayor", keys: ["cochrane", "sotomayor"] }],
+        veredas: "no", cruces: "si", ruido: "no", iluminacion: "si", descanso: "no",
+        otro: null, emociones: "Inseguridad al cruzar",
+        comentario: "No alcanza a distinguir bien el color del semáforo; cruza siguiendo a la gente que va adelante.",
+        testimonios: [
+            { texto: "En el cruce de Cochrane con Sotomayor no alcanza a distinguir bien el color del semáforo y cruza siguiendo a la gente que va adelante.", tipo: "negativo", keys: ["cochrane", "sotomayor"] }
+        ]
+    },
+    {
+        id: 52, dificultad: 3,
+        mayorRaw: "Almte. Goñi, Clave", menorRaw: "Plaza Echaurren",
+        mayorKeys: ["goni", "clave"], menorKeys: [],
+        espacios: [{ nombre: "Plaza Echaurren", rol: "Menor", keys: ["echaurren"] }],
+        veredas: "si", cruces: "no", ruido: "no", iluminacion: "no", descanso: "si",
+        otro: "Escaleras sin baranda", emociones: "Agobio",
+        comentario: null, testimonios: []
+    },
+    {
+        id: 53, dificultad: 2,
+        mayorRaw: "Cochrane", menorRaw: "Sotomayor, Serrano, Prat",
+        mayorKeys: ["cochrane"], menorKeys: ["sotomayor", "serrano", "prat"],
+        veredas: "no", cruces: "no", ruido: "si", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Orgullo de poder salir solo",
+        comentario: "Dice que claramente sería más fácil si las calles estuvieran mejor cuidadas.",
+        testimonios: [
+            { texto: "Siente orgullo de poder salir solo, aunque señala que claramente sería más fácil si las calles estuvieran mejor cuidadas.", tipo: "mixto", keys: ["cochrane", "sotomayor", "serrano", "prat"] }
+        ]
+    },
+    {
+        id: 54, dificultad: 5,
+        mayorRaw: "Todas", menorRaw: "Ninguno",
+        mayorKeys: [], menorKeys: [],
+        generalTag: "Todas",
+        veredas: "si", cruces: "si", ruido: "si", iluminacion: "si", descanso: "si",
+        otro: "Tráfico", emociones: "Temor",
+        comentario: "Sin su hijo no sale a la calle, dice que los autos pasan muy rápido.",
+        testimonios: [
+            { texto: "Sin su hijo no sale a la calle, dice que los autos pasan muy rápido.", tipo: "negativo", keys: [], esGeneral: true }
+        ]
+    },
+    {
+        id: 55, dificultad: 1,
+        mayorRaw: "Ninguno", menorRaw: "Plaza Echaurren, Sotomayor, Cochrane",
+        mayorKeys: [], menorKeys: ["sotomayor", "cochrane"],
+        generalTag: "Ninguno",
+        espacios: [{ nombre: "Plaza Echaurren", rol: "Menor", keys: ["echaurren"] }],
+        veredas: "no", cruces: "no", ruido: "no", iluminacion: "no", descanso: "no",
+        otro: null, emociones: "Pertenencia y orgullo",
+        comentario: "Siempre ha vivido aquí, entonces no se le hace difícil movilizarse.",
+        testimonios: [
+            { texto: "Siempre ha vivido aquí, siente pertenencia y orgullo y no se le hace difícil movilizarse por Plaza Echaurren, Sotomayor y Cochrane.", tipo: "positivo", keys: ["echaurren", "sotomayor", "cochrane"] }
+        ]
+    },
+    {
+        id: 56, dificultad: 3,
+        mayorRaw: "Almirante Goñi, Almirante Pérez, almirante Muñoz", menorRaw: "Sotomayor, puerto",
+        mayorKeys: ["goni", "perez", "munoz"], menorKeys: ["sotomayor"],
+        espacios: [{ nombre: "Puerto", rol: "Menor", keys: [] }],
+        veredas: "si", cruces: "si", ruido: "no", iluminacion: "no", descanso: "si",
+        otro: "Seguridad", emociones: "Miedo",
+        comentario: "Evita lo más posible los pasajes pequeños, sobre todo después de las cinco de la tarde.",
+        testimonios: [
+            { texto: "Evita lo más posible los pasajes pequeños (Almirante Goñi, Almirante Pérez y Almirante Muñoz), sobre todo después de las cinco de la tarde.", tipo: "negativo", keys: ["goni", "perez", "munoz"] },
+            { texto: "Prefiere circular por Sotomayor y el sector del Puerto.", tipo: "positivo", keys: ["sotomayor"] }
+        ]
+    }
+];
+
+function buildValparaisoStreetDetailsFromSurvey() {
+    const detailsMap = {};
+
+    // Resumen global de menciones generales en las 56 encuestas (sin mezclarlas con conteos de calles)
+    let globalTodosCount = 0;
+    let globalNingunoCount = 0;
+    const generalTestimonies = [];
+
+    VALPARAISO_SURVEY_RESPONSES.forEach((row) => {
+        if (row.generalTag && row.generalTag.includes("Tod")) globalTodosCount++;
+        if (row.generalTag && row.generalTag.includes("Ninguno")) globalNingunoCount++;
+        (row.testimonios || []).forEach((t) => {
+            if (t.esGeneral) {
+                generalTestimonies.push(`[Encuesta general Barrio Puerto • Dif. ${row.dificultad}/5] ${t.texto}`);
+            }
+        });
+    });
+
+    VALPARAISO_RAW_RECORDS.forEach((rec) => {
+        if (rec.type !== "horizontal" && rec.type !== "vertical") return;
+
+        const bandId = rec.id;
+
+        let mayorDirectCount = 0;
+        let menorDirectCount = 0;
+        const mayorDiffValues = [];
+        const menorDiffValues = [];
+        const associatedRows = [];
+        const associatedRowIds = new Set();
+
+        const crucesMap = new Map();
+        const espaciosMap = new Map();
+        const otrosAspectos = [];
+        const emociones = [];
+        const comentariosNegativos = [];
+        const comentariosPositivos = [];
+        const comentariosMixtos = [];
+
+        VALPARAISO_SURVEY_RESPONSES.forEach((row) => {
+            const mayorBandIds = expandValpoKeys(row.mayorKeys);
+            const menorBandIds = expandValpoKeys(row.menorKeys);
+            const commentBandIds = expandValpoKeys(row.commentKeys);
+
+            const isMayor = mayorBandIds.includes(bandId);
+            const isMenor = menorBandIds.includes(bandId);
+            const isCommentRef = commentBandIds.includes(bandId);
+
+            let isCruceRef = false;
+            (row.crucesEsp || []).forEach((cr) => {
+                const crBandIds = expandValpoKeys(cr.keys);
+                if (crBandIds.includes(bandId)) {
+                    isCruceRef = true;
+                    const key = `${cr.nombre} (${cr.rol})`;
+                    crucesMap.set(key, (crucesMap.get(key) || 0) + 1);
+                }
+            });
+
+            let isEspacioRef = false;
+            (row.espacios || []).forEach((esp) => {
+                const espBandIds = expandValpoKeys(esp.keys);
+                if (espBandIds.includes(bandId)) {
+                    isEspacioRef = true;
+                    const key = `${esp.nombre} (${esp.rol})`;
+                    espaciosMap.set(key, (espaciosMap.get(key) || 0) + 1);
+                }
+            });
+
+            if (isMayor) {
+                mayorDirectCount++;
+                if (typeof row.dificultad === "number") mayorDiffValues.push(row.dificultad);
+            }
+            if (isMenor) {
+                menorDirectCount++;
+                if (typeof row.dificultad === "number") menorDiffValues.push(row.dificultad);
+            }
+
+            const isAssociated = isMayor || isMenor || isCruceRef || isEspacioRef || isCommentRef;
+            if (isAssociated && !associatedRowIds.has(row.id)) {
+                associatedRowIds.add(row.id);
+                associatedRows.push(row);
+
+                const ctxLabel = isMayor
+                    ? "Mayor"
+                    : (isMenor ? "Menor" : (isCruceRef ? "Cruce" : "Ref."));
+
+                if (row.otro) {
+                    otrosAspectos.push({ texto: row.otro, contexto: ctxLabel });
+                }
+                if (row.emociones) {
+                    emociones.push({ texto: row.emociones, contexto: ctxLabel });
+                }
+            }
+
+            // Testimonios específicos asociados a esta banda
+            (row.testimonios || []).forEach((t) => {
+                const tBandIds = expandValpoKeys(t.keys);
+                if (tBandIds.includes(bandId)) {
+                    if (t.tipo === "negativo" && !comentariosNegativos.includes(t.texto)) {
+                        comentariosNegativos.push(t.texto);
+                    } else if (t.tipo === "positivo" && !comentariosPositivos.includes(t.texto)) {
+                        comentariosPositivos.push(t.texto);
+                    } else if (t.tipo === "mixto" && !comentariosMixtos.includes(t.texto)) {
+                        comentariosMixtos.push(t.texto);
+                    }
+                }
+            });
+        });
+
+        // Cálculos de dificultad percibida (escala 1 a 5) sin duplicar encuestados
+        const allDiffValues = associatedRows
+            .map((r) => r.dificultad)
+            .filter((v) => typeof v === "number");
+
+        const calcMean = (arr) => (arr.length > 0
+            ? arr.reduce((a, b) => a + b, 0) / arr.length
+            : null);
+
+        const mediaGeneral = calcMean(allDiffValues);
+        const mediaEnMayor = calcMean(mayorDiffValues);
+        const mediaEnMenor = calcMean(menorDiffValues);
+
+        const levelCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        allDiffValues.forEach((v) => {
+            if (levelCounts[v] !== undefined) levelCounts[v]++;
+        });
+
+        const distribucionNiveles = [1, 2, 3, 4, 5].map((lvl) => {
+            const count = levelCounts[lvl];
+            const pct = allDiffValues.length > 0 ? (count / allDiffValues.length) * 100 : 0;
+            return { nivel: lvl, count, pct };
+        });
+
+        // Cálculos de las 5 dimensiones urbanas (excluyendo respuestas sin información del denominador)
+        function computeUrbanDim(fieldKey) {
+            let si = 0;
+            let no = 0;
+            let sinInfo = 0;
+
+            associatedRows.forEach((r) => {
+                if (r[fieldKey] === "si") si++;
+                else if (r[fieldKey] === "no") no++;
+                else sinInfo++;
+            });
+
+            const validTotal = si + no;
+            if (validTotal === 0) return null;
+
+            return {
+                si,
+                no,
+                validTotal,
+                sinInfo,
+                pctSi: (si / validTotal) * 100,
+                pctNo: (no / validTotal) * 100
+            };
+        }
+
+        // Incorporar referencias de cruces, plazas y resumen general del barrio sin mezclarlos con las calles
+        crucesMap.forEach((count, label) => {
+            otrosAspectos.unshift({
+                texto: `${label}: ${count} ${count === 1 ? "mención" : "menciones"}`,
+                contexto: "Cruce"
+            });
+        });
+
+        espaciosMap.forEach((count, label) => {
+            otrosAspectos.push({
+                texto: `Espacio vinculado — ${label}: ${count}`,
+                contexto: "Ref."
+            });
+        });
+
+        // Añadir contexto general del barrio («Todos / Todas») debidamente identificado en testimonios mixtos/contextuales
+        const contextualMixtos = [...comentariosMixtos];
+        generalTestimonies.slice(0, 3).forEach((gt) => {
+            if (!contextualMixtos.includes(gt)) {
+                contextualMixtos.push(gt);
+            }
+        });
+
+        detailsMap[bandId] = {
+            id: bandId,
+            name: rec.name,
+            isValparaisoSurvey: true,
+            difficultyStats: {
+                mayorDificultad: mayorDirectCount,
+                menorDificultad: menorDirectCount,
+                mediaDificultad: mediaGeneral,
+                mediaEnMayor,
+                mediaEnMenor,
+                totalEncuestasAsociadas: associatedRows.length,
+                distribucionNiveles,
+                globalTodosCount,
+                globalNingunoCount
+            },
+            urbanAspects: {
+                estadoCallesVeredas: computeUrbanDim("veredas"),
+                crucesOrientacion: computeUrbanDim("cruces"),
+                ruido: computeUrbanDim("ruido"),
+                iluminacion: computeUrbanDim("iluminacion"),
+                espaciosDescanso: computeUrbanDim("descanso")
+            },
+            comentariosNegativos,
+            comentariosPositivos,
+            comentariosMixtos: contextualMixtos,
+            otrosAspectos,
+            emociones
+        };
+    });
+
     return detailsMap;
 }
 
-const VALPARAISO_STREET_DETAILS = createPreparedValparaisoStreetDetails();
+const VALPARAISO_STREET_DETAILS = buildValparaisoStreetDetailsFromSurvey();
 
 // ==========================================================
 // 4. MOTOR CROMÁTICO Y DE DATOS (ChromaticDataEngine)
@@ -2663,6 +3516,8 @@ class StreetInfoPanelController {
         this.urbanStatsEl = document.getElementById("panel-urban-stats");
         this.commentsNegEl = document.getElementById("panel-comments-negative");
         this.commentsPosEl = document.getElementById("panel-comments-positive");
+        this.commentsMixWrapEl = document.getElementById("panel-comments-mixed-wrap");
+        this.commentsMixEl = document.getElementById("panel-comments-mixed");
         this.otherAspectsEl = document.getElementById("panel-other-aspects");
         this.emotionsEl = document.getElementById("panel-emotions");
 
@@ -2787,28 +3642,61 @@ class StreetInfoPanelController {
         const d = details.difficultyStats || {};
         const u = details.urbanAspects || {};
 
-        if (details.isPendingDetailedData) {
-            // Para Valparaíso: muestra los recuentos reales de la tabla cromática y deja preparada la estructura detallada
+        if (details.isValparaisoSurvey) {
+            const fmtNum = (val) => (val !== null && val !== undefined)
+                ? `${val.toFixed(2).replace(".", ",")} / 5`
+                : null;
+
+            const mediaGenStr = fmtNum(d.mediaDificultad);
+            const mediaMayorStr = fmtNum(d.mediaEnMayor);
+
+            const mediaGeneralHtml = mediaGenStr
+                ? `<span class="stat-value">${mediaGenStr}</span>`
+                : `<span class="stat-value is-unavailable">Sin datos suficientes</span>`;
+
+            const mediaMayorHtml = mediaMayorStr
+                ? `<span class="stat-value">${mediaMayorStr}</span>`
+                : `<span class="stat-value is-unavailable">Sin menciones en mayor dif.</span>`;
+
+            const levelsHtml = (d.distribucionNiveles || [])
+                .map((item) => `
+                    <div class="diff-level-cell ${item.count > 0 ? "has-count" : ""}">
+                        <span class="diff-level-num">Nivel ${item.nivel}</span>
+                        <span class="diff-level-val">${item.count}</span>
+                        <span class="diff-level-pct">${item.pct.toFixed(0)}%</span>
+                    </div>
+                `)
+                .join("");
+
             this.difficultyStatsEl.innerHTML = `
                 <div class="stat-row">
+                    <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.mayorDificultad}</span>
+                    <span class="stat-label">Menciones en mayor dificultad</span>
+                    <span class="stat-value">${d.mayorDificultad}</span>
+                </div>
+                <div class="stat-row">
                     <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.menorDificultad}</span>
-                    <span class="stat-label">Respuestas verdes</span>
-                    <span class="stat-value">${record.green}</span>
+                    <span class="stat-label">Menciones en menor dificultad</span>
+                    <span class="stat-value">${d.menorDificultad}</span>
                 </div>
                 <div class="stat-row">
                     <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.mediaDificultad}</span>
-                    <span class="stat-label">Respuestas amarillas</span>
-                    <span class="stat-value">${record.yellow}</span>
+                    <span class="stat-label">Promedio de dificultad (${d.totalEncuestasAsociadas} enc.)</span>
+                    ${mediaGeneralHtml}
                 </div>
                 <div class="stat-row">
-                    <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.mayorDificultad}</span>
-                    <span class="stat-label">Respuestas rojas</span>
-                    <span class="stat-value">${record.red}</span>
+                    <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.mediaDificultad}</span>
+                    <span class="stat-label">Promedio en mayor dificultad</span>
+                    ${mediaMayorHtml}
                 </div>
-                <div class="stat-row">
-                    <span class="stat-icon" aria-hidden="true">${PANEL_ICONS.cruces}</span>
-                    <span class="stat-label">Total de respuestas del tramo</span>
-                    <span class="stat-value">${record.total}</span>
+                <div class="difficulty-levels-row">
+                    <div class="difficulty-levels-header">
+                        <span>Distribución por niveles (Escala 1 a 5)</span>
+                        <span>n = ${d.totalEncuestasAsociadas}</span>
+                    </div>
+                    <div class="difficulty-levels-grid">
+                        ${levelsHtml}
+                    </div>
                 </div>
             `;
         } else {
@@ -2858,19 +3746,23 @@ class StreetInfoPanelController {
                         <div class="stat-row">
                             <span class="stat-icon" aria-hidden="true">${item.icon}</span>
                             <span class="stat-label">${item.label}</span>
-                            <span class="stat-value is-unavailable">Sin datos</span>
+                            <span class="stat-value is-unavailable">Sin datos suficientes</span>
                         </div>
                     `;
                 }
                 const si = item.data.si;
                 const no = item.data.no;
+                const hasPct = typeof item.data.pctSi === "number";
+                const pctSiHtml = hasPct ? `<span class="yn-pct">(${item.data.pctSi.toFixed(0)}%)</span>` : "";
+                const pctNoHtml = hasPct ? `<span class="yn-pct">(${item.data.pctNo.toFixed(0)}%)</span>` : "";
+
                 return `
                     <div class="stat-row">
                         <span class="stat-icon" aria-hidden="true">${item.icon}</span>
                         <span class="stat-label">${item.label}</span>
                         <span class="stat-yesno">
-                            <span class="yn-pill yn-yes ${si > 0 ? "has-yes" : ""}">Sí: <strong>${si}</strong></span>
-                            <span class="yn-pill yn-no">No: <strong>${no}</strong></span>
+                            <span class="yn-pill yn-yes ${si > 0 ? "has-yes" : ""}">Sí: <strong>${si}</strong>${pctSiHtml}</span>
+                            <span class="yn-pill yn-no">No: <strong>${no}</strong>${pctNoHtml}</span>
                         </span>
                     </div>
                 `;
@@ -2881,9 +3773,10 @@ class StreetInfoPanelController {
     renderComments(details) {
         const negList = details.comentariosNegativos || [];
         const posList = details.comentariosPositivos || [];
+        const mixList = details.comentariosMixtos || [];
 
         if (negList.length === 0) {
-            this.commentsNegEl.innerHTML = `<div class="comments-empty">Sin datos de comentarios disponibles para esta calle.</div>`;
+            this.commentsNegEl.innerHTML = `<div class="comments-empty">No hay comentarios negativos específicos registrados para esta calle.</div>`;
         } else {
             this.commentsNegEl.innerHTML = negList
                 .map((text) => `<article class="comment-card comment-neg">“${text}”</article>`)
@@ -2891,11 +3784,23 @@ class StreetInfoPanelController {
         }
 
         if (posList.length === 0) {
-            this.commentsPosEl.innerHTML = `<div class="comments-empty">Sin datos de comentarios disponibles para esta calle.</div>`;
+            this.commentsPosEl.innerHTML = `<div class="comments-empty">No hay comentarios positivos específicos registrados para esta calle.</div>`;
         } else {
             this.commentsPosEl.innerHTML = posList
                 .map((text) => `<article class="comment-card comment-pos">“${text}”</article>`)
                 .join("");
+        }
+
+        if (this.commentsMixWrapEl && this.commentsMixEl) {
+            if (details.isValparaisoSurvey && mixList.length > 0) {
+                this.commentsMixWrapEl.style.display = "flex";
+                this.commentsMixEl.innerHTML = mixList
+                    .map((text) => `<article class="comment-card comment-mix">${text}</article>`)
+                    .join("");
+            } else {
+                this.commentsMixWrapEl.style.display = "none";
+                this.commentsMixEl.innerHTML = "";
+            }
         }
     }
 
@@ -2903,35 +3808,36 @@ class StreetInfoPanelController {
         const aspects = details.otrosAspectos || [];
         const emotions = details.emociones || [];
 
+        const getCtxClass = (ctx) => {
+            if (ctx === "Mayor") return "ctx-mayor";
+            if (ctx === "Menor") return "ctx-menor";
+            if (ctx === "Cruce") return "ctx-cruce";
+            return "ctx-general";
+        };
+
         if (aspects.length === 0) {
-            this.otherAspectsEl.innerHTML = `<span class="comments-empty">Sin datos adicionales</span>`;
+            this.otherAspectsEl.innerHTML = `<span class="comments-empty">Sin observaciones adicionales registradas</span>`;
         } else {
             this.otherAspectsEl.innerHTML = aspects
-                .map((item) => {
-                    const ctxClass = item.contexto === "Mayor" ? "ctx-mayor" : "ctx-menor";
-                    return `
-                        <span class="meta-tag">
-                            <span>${item.texto}</span>
-                            <span class="meta-tag-ctx ${ctxClass}">${item.contexto}</span>
-                        </span>
-                    `;
-                })
+                .map((item) => `
+                    <span class="meta-tag">
+                        <span>${item.texto}</span>
+                        <span class="meta-tag-ctx ${getCtxClass(item.contexto)}">${item.contexto}</span>
+                    </span>
+                `)
                 .join("");
         }
 
         if (emotions.length === 0) {
-            this.emotionsEl.innerHTML = `<span class="comments-empty">Sin datos adicionales</span>`;
+            this.emotionsEl.innerHTML = `<span class="comments-empty">Sin emociones registradas</span>`;
         } else {
             this.emotionsEl.innerHTML = emotions
-                .map((item) => {
-                    const ctxClass = item.contexto === "Mayor" ? "ctx-mayor" : "ctx-menor";
-                    return `
-                        <span class="meta-tag">
-                            <span>${item.texto}</span>
-                            <span class="meta-tag-ctx ${ctxClass}">${item.contexto}</span>
-                        </span>
-                    `;
-                })
+                .map((item) => `
+                    <span class="meta-tag">
+                        <span>${item.texto}</span>
+                        <span class="meta-tag-ctx ${getCtxClass(item.contexto)}">${item.contexto}</span>
+                    </span>
+                `)
                 .join("");
         }
     }
