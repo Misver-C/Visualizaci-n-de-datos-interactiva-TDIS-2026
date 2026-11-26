@@ -43,7 +43,16 @@ const SCENE_CONFIG = {
     bandDefaults: {
         width: 2.1,
         thickness: 0.24,
-        maxElevation: 5.0,
+        minPrincipalHeight: 0.20,
+        maxPrincipalHeight: 1.06,
+        maxElevation: 5.2,
+        minHoverElevation: 4.8,
+        maxHoverElevation: 6.4,
+        maxSecondaryBands: 9,
+        secondaryThicknessMax: 0.16,
+        secondaryThicknessMin: 0.12,
+        secondaryWidthRatio: 0.90,
+        secondaryFloorClearance: 0.05,
         animationSpeed: 6.8,
         returnDuration: 1.0,
         maxLateralOffset: 1.4,
@@ -56,6 +65,12 @@ const SCENE_CONFIG = {
     chromatic: {
         minNormalizedIntensity: 0.24,
         maxNormalizedIntensity: 1.00,
+        singleColorScaleMax: 9,
+        baseHex: {
+            green: "#2ee56d",
+            yellow: "#f0bf2d",
+            red: "#e84331"
+        },
         categories: {
             green: {
                 hue: 144 / 360,
@@ -1577,14 +1592,448 @@ function buildValparaisoStreetDetailsFromSurvey() {
 const VALPARAISO_STREET_DETAILS = buildValparaisoStreetDetailsFromSurvey();
 
 // ==========================================================
-// 4. MOTOR CROMÁTICO Y DE DATOS (ChromaticDataEngine)
+// 4. MÓDULO DE COMPOSICIÓN VISUAL DE BANDAS Y MOTOR CROMÁTICO
+//    (Altura proporcional, Mezcla perceptual, Escala 1-9 y Descomposición en 9 capas)
 // ==========================================================
 
+const COLOR_TIE_PRIORITY = {
+    green: 1,
+    yellow: 2,
+    red: 3
+};
+
+/**
+ * Calcula el rango global de respuestas totales [minTotal, maxTotal] entre los modelos
+ * para mantener proporciones visuales de altura coherentes entre Buenos Aires y Valparaíso.
+ */
+function computeGlobalBandTotalScale(recordSets = [BUENOS_AIRES_RAW_RECORDS, VALPARAISO_RAW_RECORDS]) {
+    let minTotal = Infinity;
+    let maxTotal = -Infinity;
+
+    recordSets.forEach((records) => {
+        (records || []).forEach((rec) => {
+            if (rec.type !== "horizontal" && rec.type !== "vertical") return;
+            const total = (Number(rec.green) || 0) + (Number(rec.yellow) || 0) + (Number(rec.red) || 0);
+            if (total > 0) {
+                if (total < minTotal) minTotal = total;
+                if (total > maxTotal) maxTotal = total;
+            }
+        });
+    });
+
+    const safeMin = Number.isFinite(minTotal) ? minTotal : 1;
+    const safeMax = Number.isFinite(maxTotal) && maxTotal > safeMin ? maxTotal : Math.max(28, safeMin + 1);
+
+    return {
+        minTotal: safeMin,
+        maxTotal: safeMax
+    };
+}
+
+/**
+ * Calcula la altura física estable de la banda principal (en reposo y durante el hover)
+ * y su elevación máxima en hover proporcionalmente al total real de respuestas de la calle.
+ * Es completamente independiente del límite de 9 bandas secundarias.
+ */
+function computePrincipalBandHeight(totalResponses, totalScale = null) {
+    const scale = totalScale || computeGlobalBandTotalScale();
+    const {
+        minPrincipalHeight,
+        maxPrincipalHeight,
+        minHoverElevation,
+        maxHoverElevation
+    } = SCENE_CONFIG.bandDefaults;
+
+    const safeTotal = Math.max(0, Number(totalResponses) || 0);
+    const span = Math.max(1, scale.maxTotal - scale.minTotal);
+    const normalizedTotal = safeTotal > 0
+        ? THREE.MathUtils.clamp((safeTotal - scale.minTotal) / span, 0, 1)
+        : 0;
+
+    // Escala proporcional suavizada para conservar diferencias claras entre pocas y muchas respuestas
+    const heightCurve = Math.pow(normalizedTotal, 0.92);
+    const principalHeight = THREE.MathUtils.lerp(minPrincipalHeight, maxPrincipalHeight, heightCurve);
+    const hoverElevation = THREE.MathUtils.lerp(minHoverElevation, maxHoverElevation, heightCurve);
+
+    return {
+        totalResponses: safeTotal,
+        normalizedTotal,
+        principalHeight: Number(principalHeight.toFixed(4)),
+        hoverElevation: Number(hoverElevation.toFixed(4))
+    };
+}
+
+/**
+ * Conversiones perceptuales sRGB <-> OKLab para mezclar colores manteniendo
+ * luminosidad, saturación e identidad cromática sin producir tonos marrones ni apagados.
+ */
+function srgbChannelToLinear(c) {
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+function linearChannelToSrgb(c) {
+    const clamped = THREE.MathUtils.clamp(c, 0, 1);
+    return clamped <= 0.0031308
+        ? 12.92 * clamped
+        : 1.055 * Math.pow(clamped, 1 / 2.4) - 0.055;
+}
+
+function srgbToOklab(r, g, b) {
+    const lr = srgbChannelToLinear(r);
+    const lg = srgbChannelToLinear(g);
+    const lb = srgbChannelToLinear(b);
+
+    const l = Math.cbrt(0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb);
+    const m = Math.cbrt(0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb);
+    const s = Math.cbrt(0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb);
+
+    return {
+        L: 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+        a: 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+        b: 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s
+    };
+}
+
+function oklabToSrgb(L, a, b) {
+    const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+    const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+    const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+
+    const l = l_ * l_ * l_;
+    const m = m_ * m_ * m_;
+    const s = s_ * s_ * s_;
+
+    const lr = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+    const lg = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+    const lb = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
+
+    return {
+        r: linearChannelToSrgb(lr),
+        g: linearChannelToSrgb(lg),
+        b: linearChannelToSrgb(lb)
+    };
+}
+
+/**
+ * Obtiene el color base de referencia del sistema para una categoría ('green' | 'yellow' | 'red').
+ */
+function getBaseCategoryReferenceColor(categoryKey) {
+    const hexMap = SCENE_CONFIG.chromatic.baseHex;
+    const hex = (hexMap && hexMap[categoryKey]) || "#888888";
+    return new THREE.Color(hex);
+}
+
+/**
+ * Escala de intensidad de 1 a 9 cuando una banda tiene respuestas de UN SOLO color (Sección 7).
+ * - Nivel 1 (1 respuesta): color claro con mayor presencia de blanco.
+ * - Niveles 2..8: transición progresiva y suave hacia el tono base.
+ * - Nivel 9 (9 o más respuestas): color más saturado, intenso y cercano al tono base.
+ */
+function computeSingleColorIntensity(categoryKey, count) {
+    const maxScale = SCENE_CONFIG.chromatic.singleColorScaleMax || 9;
+    const safeCount = Math.max(1, Number(count) || 1);
+    const clampedLevel = THREE.MathUtils.clamp(safeCount, 1, maxScale);
+    const linearT = (clampedLevel - 1) / Math.max(1, maxScale - 1);
+    const smoothT = Math.pow(linearT, 0.86);
+
+    const baseColor = getBaseCategoryReferenceColor(categoryKey);
+    const baseHSL = { h: 0, s: 0, l: 0 };
+    baseColor.getHSL(baseHSL);
+
+    // Nivel 1: alta luminosidad (blanquecino con identidad de matiz clara) -> Nivel 9: tono base intenso
+    const lightAtLevel1 = categoryKey === "yellow" ? 0.86 : 0.84;
+    const satAtLevel1 = categoryKey === "yellow" ? 0.56 : 0.48;
+    const targetSat = THREE.MathUtils.lerp(satAtLevel1, Math.max(0.80, baseHSL.s), smoothT);
+    const targetLight = THREE.MathUtils.lerp(lightAtLevel1, THREE.MathUtils.clamp(baseHSL.l, 0.48, 0.55), smoothT);
+
+    const resultColor = new THREE.Color();
+    resultColor.setHSL(baseHSL.h, targetSat, targetLight);
+
+    return {
+        color: resultColor,
+        intensityLevel: clampedLevel,
+        normalizedIntensity: THREE.MathUtils.lerp(
+            SCENE_CONFIG.chromatic.minNormalizedIntensity,
+            SCENE_CONFIG.chromatic.maxNormalizedIntensity,
+            smoothT
+        ),
+        isSingleColor: true
+    };
+}
+
+/**
+ * Calcula el color representativo de la banda principal a partir de la composición
+ * completa de respuestas verdes, amarillas y rojas (Secciones 6 y 7).
+ * - Si solo existe 1 color con respuestas > 0: aplica la escala de intensidad 1 a 9.
+ * - Si existen 2 o 3 colores: realiza una mezcla cromática proporcional y perceptualmente
+ *   equilibrada en OKLab con preservación de croma y luminosidad.
+ */
+function computeProportionalChromaticMix(counts) {
+    const green = Math.max(0, Number(counts.green) || 0);
+    const yellow = Math.max(0, Number(counts.yellow) || 0);
+    const red = Math.max(0, Number(counts.red) || 0);
+    const total = green + yellow + red;
+
+    const activeEntries = [
+        { key: "green", count: green },
+        { key: "yellow", count: yellow },
+        { key: "red", count: red }
+    ].filter((item) => item.count > 0);
+
+    if (activeEntries.length === 0 || total === 0) {
+        const neutral = new THREE.Color(0x808080);
+        return {
+            primaryColor: neutral,
+            componentColors: [neutral.clone()],
+            activeColorCount: 0,
+            intensityLevel: 0,
+            normalizedIntensity: SCENE_CONFIG.chromatic.minNormalizedIntensity
+        };
+    }
+
+    // Caso 1: Un único color presente -> Escala de intensidad de 1 a 9 (Sección 7)
+    if (activeEntries.length === 1) {
+        const only = activeEntries[0];
+        const singleResult = computeSingleColorIntensity(only.key, only.count);
+        return {
+            primaryColor: singleResult.color,
+            componentColors: [singleResult.color.clone()],
+            activeColorCount: 1,
+            intensityLevel: singleResult.intensityLevel,
+            normalizedIntensity: singleResult.normalizedIntensity
+        };
+    }
+
+    // Caso 2: Dos o tres colores presentes -> Mezcla cromática proporcional en OKLab + preservación perceptual (Sección 6)
+    const pG = green / total;
+    const pY = yellow / total;
+    const pR = red / total;
+
+    const cG = getBaseCategoryReferenceColor("green");
+    const cY = getBaseCategoryReferenceColor("yellow");
+    const cR = getBaseCategoryReferenceColor("red");
+
+    const labG = srgbToOklab(cG.r, cG.g, cG.b);
+    const labY = srgbToOklab(cY.r, cY.g, cY.b);
+    const labR = srgbToOklab(cR.r, cR.g, cR.b);
+
+    const chromaG = Math.hypot(labG.a, labG.b);
+    const chromaY = Math.hypot(labY.a, labY.b);
+    const chromaR = Math.hypot(labR.a, labR.b);
+
+    const Lmix = pG * labG.L + pY * labY.L + pR * labR.L;
+    let amix = pG * labG.a + pY * labY.a + pR * labR.a;
+    let bmix = pG * labG.b + pY * labY.b + pR * labR.b;
+
+    // Preservar el croma perceptual para evitar que mezclas verde+rojo se vuelvan marrones o grisáceas
+    const rawChroma = Math.hypot(amix, bmix);
+    const idealChroma = pG * chromaG + pY * chromaY + pR * chromaR;
+    const targetChroma = THREE.MathUtils.lerp(rawChroma, idealChroma, 0.74);
+
+    if (rawChroma > 0.0001) {
+        const scale = targetChroma / rawChroma;
+        amix *= scale;
+        bmix *= scale;
+    } else {
+        // Equilibrio exacto entre verde y rojo: orientar hacia el eje cálido ámbar (+b)
+        amix = 0.0;
+        bmix = targetChroma;
+    }
+
+    const targetL = THREE.MathUtils.clamp(Lmix * 1.02, 0.66, 0.83);
+    const srgb = oklabToSrgb(targetL, amix, bmix);
+    const mixedColor = new THREE.Color(srgb.r, srgb.g, srgb.b);
+
+    // Ajuste fino en HSL para garantizar saturación viva y contraste óptimo sobre el tablero oscuro
+    const hsl = { h: 0, s: 0, l: 0 };
+    mixedColor.getHSL(hsl);
+    const finalSat = THREE.MathUtils.clamp(Math.max(hsl.s, 0.62), 0.60, 0.88);
+    const finalLight = THREE.MathUtils.clamp(hsl.l, 0.46, 0.58);
+    mixedColor.setHSL(hsl.h, finalSat, finalLight);
+
+    const componentColors = activeEntries.map((entry) => getBaseCategoryReferenceColor(entry.key));
+    const clampedTotalLevel = THREE.MathUtils.clamp(total, 1, 9);
+    const normalizedIntensity = THREE.MathUtils.lerp(
+        SCENE_CONFIG.chromatic.minNormalizedIntensity,
+        SCENE_CONFIG.chromatic.maxNormalizedIntensity,
+        (clampedTotalLevel - 1) / 8
+    );
+
+    return {
+        primaryColor: mixedColor,
+        componentColors,
+        activeColorCount: activeEntries.length,
+        intensityLevel: clampedTotalLevel,
+        normalizedIntensity
+    };
+}
+
+/**
+ * Ordena dinámicamente los grupos de colores con respuestas (> 0) de mayor a menor cantidad.
+ * En caso de empate utiliza un criterio determinista consistente (verde -> amarillo -> rojo).
+ */
+function orderSecondaryColorGroups(counts) {
+    const entries = [
+        { key: "green", label: "Verde", count: Math.max(0, Number(counts.green) || 0) },
+        { key: "yellow", label: "Amarillo", count: Math.max(0, Number(counts.yellow) || 0) },
+        { key: "red", label: "Rojo", count: Math.max(0, Number(counts.red) || 0) }
+    ].filter((item) => item.count > 0);
+
+    entries.sort((a, b) => {
+        if (b.count !== a.count) {
+            return b.count - a.count;
+        }
+        return (COLOR_TIE_PRIORITY[a.key] || 99) - (COLOR_TIE_PRIORITY[b.key] || 99);
+    });
+
+    return entries;
+}
+
+/**
+ * Calcula la distribución de hasta 9 bandas secundarias (Secciones 2, 3, 4 y 8).
+ * - Si total <= 9: representación exacta 1 a 1 (cada respuesta genera 1 banda secundaria).
+ * - Si total > 9: distribuye exactamente 9 bandas de forma proporcional (Método de Restos Mayores
+ *   con garantía de mínimo 1 banda para cada color presente con respuestas > 0 y preservación de orden).
+ * - Nunca asigna bandas a colores con 0 respuestas ni altera el total real de la calle.
+ */
+function distributeSecondaryBands(counts, maxBands = SCENE_CONFIG.bandDefaults.maxSecondaryBands) {
+    const orderedGroups = orderSecondaryColorGroups(counts);
+    const realTotal = orderedGroups.reduce((acc, g) => acc + g.count, 0);
+
+    if (realTotal === 0 || orderedGroups.length === 0) {
+        return {
+            realTotal: 0,
+            totalSecondaryBands: 0,
+            isApproximated: false,
+            groups: [],
+            layers: []
+        };
+    }
+
+    let allocatedGroups = [];
+    const isApproximated = realTotal > maxBands;
+
+    if (!isApproximated) {
+        // Representación 1:1 exacta cuando el total es <= 9
+        allocatedGroups = orderedGroups.map((g, idx) => ({
+            ...g,
+            rank: idx,
+            exactQuota: g.count,
+            allocatedBands: g.count
+        }));
+    } else {
+        // Aproximación matemática proporcional a exactamente `maxBands` (9) capas
+        const quotas = orderedGroups.map((g, idx) => {
+            const exactQuota = (g.count / realTotal) * maxBands;
+            // Garantizar al menos 1 banda para cada color presente (> 0 respuestas)
+            const baseBands = Math.max(1, Math.floor(exactQuota));
+            return {
+                ...g,
+                rank: idx,
+                exactQuota,
+                allocatedBands: baseBands,
+                remainder: exactQuota - baseBands
+            };
+        });
+
+        let currentSum = quotas.reduce((acc, q) => acc + q.allocatedBands, 0);
+
+        // Si quedan bandas por repartir hasta completar 9, asignar por restos mayores
+        while (currentSum < maxBands) {
+            const remaining = maxBands - currentSum;
+
+            // Si hay un empate exacto en conteo entre dos grupos y solo queda 1 banda,
+            // priorizar un grupo no empatado para no romper la igualdad visual del empate
+            let candidateOrder = [...quotas].sort((a, b) => {
+                if (Math.abs(b.remainder - a.remainder) > 1e-6) {
+                    return b.remainder - a.remainder;
+                }
+                return a.rank - b.rank;
+            });
+
+            if (remaining === 1 && quotas.length === 3) {
+                const topCandidate = candidateOrder[0];
+                const tiedPartner = quotas.find(
+                    (q) => q.key !== topCandidate.key &&
+                        q.count === topCandidate.count &&
+                        q.allocatedBands === topCandidate.allocatedBands
+                );
+                if (tiedPartner) {
+                    const untied = quotas.find((q) => q.count !== topCandidate.count);
+                    if (untied) {
+                        untied.allocatedBands += 1;
+                        untied.remainder -= 1;
+                        currentSum += 1;
+                        continue;
+                    }
+                }
+            }
+
+            const best = candidateOrder[0];
+            best.allocatedBands += 1;
+            best.remainder -= 1;
+            currentSum += 1;
+        }
+
+        // Si por garantía de mínimo 1 se excedió maxBands, reducir del grupo con mayor holgura (> 1)
+        while (currentSum > maxBands) {
+            const reducible = [...quotas]
+                .filter((q) => q.allocatedBands > 1)
+                .sort((a, b) => a.remainder - b.remainder || b.allocatedBands - a.allocatedBands);
+
+            if (reducible.length === 0) break;
+            reducible[0].allocatedBands -= 1;
+            currentSum -= 1;
+        }
+
+        // Garantizar monotonía respecto al orden de mayor a menor cantidad real
+        for (let i = 0; i < quotas.length - 1; i++) {
+            if (quotas[i].count > quotas[i + 1].count && quotas[i].allocatedBands < quotas[i + 1].allocatedBands) {
+                const temp = quotas[i].allocatedBands;
+                quotas[i].allocatedBands = quotas[i + 1].allocatedBands;
+                quotas[i + 1].allocatedBands = temp;
+            }
+        }
+
+        allocatedGroups = quotas;
+    }
+
+    // Construir la lista plana de capas secundarias de arriba (debajo de la banda principal) hacia abajo (superficie)
+    const layers = [];
+    const totalSecondaryBands = allocatedGroups.reduce((acc, g) => acc + g.allocatedBands, 0);
+
+    allocatedGroups.forEach((group) => {
+        const baseColor = getBaseCategoryReferenceColor(group.key);
+        for (let idxInGroup = 0; idxInGroup < group.allocatedBands; idxInGroup++) {
+            layers.push({
+                layerIndex: layers.length,
+                totalLayers: totalSecondaryBands,
+                categoryKey: group.key,
+                categoryLabel: group.label,
+                groupRank: group.rank,
+                indexInGroup: idxInGroup,
+                groupAllocatedCount: group.allocatedBands,
+                groupRawCount: group.count,
+                color: baseColor.clone()
+            });
+        }
+    });
+
+    return {
+        realTotal,
+        totalSecondaryBands,
+        isApproximated,
+        groups: allocatedGroups,
+        layers
+    };
+}
+
 class ChromaticDataEngine {
-    constructor(rawRecords, streetDetailsMap, expectedValidation) {
+    constructor(rawRecords, streetDetailsMap, expectedValidation, globalTotalScale = null) {
         this.recordsById = new Map();
         this.streetDetailsById = streetDetailsMap || {};
         this.expectedValidation = expectedValidation || null;
+        this.globalTotalScale = globalTotalScale || computeGlobalBandTotalScale();
         this.minDominantCount = 1;
         this.maxDominantCount = 18;
         this.validationSummary = null;
@@ -1641,20 +2090,19 @@ class ChromaticDataEngine {
             predominantCategory = key === "green" ? "Verde" : (key === "yellow" ? "Amarillo" : "Rojo");
         }
 
-        const normRange = Math.max(1, this.maxDominantCount - this.minDominantCount);
-        const rawNorm = THREE.MathUtils.clamp((maxCount - this.minDominantCount) / normRange, 0, 1);
-
-        const { minNormalizedIntensity, maxNormalizedIntensity } = SCENE_CONFIG.chromatic;
-        const normalizedIntensity = THREE.MathUtils.lerp(
-            minNormalizedIntensity,
-            maxNormalizedIntensity,
-            Math.pow(rawNorm, 0.85)
-        );
-
+        // 1. Mezcla cromática proporcional (2-3 colores) o escala de intensidad 1-9 (1 solo color)
         const chromaticResult = this.computeVisualColor(
             { green, yellow, red },
-            dominantKeys,
-            normalizedIntensity
+            dominantKeys
+        );
+
+        // 2. Altura de la banda principal basada exclusivamente en el total real de respuestas
+        const heightMetrics = computePrincipalBandHeight(total, this.globalTotalScale);
+
+        // 3. Descomposición en hasta 9 bandas secundarias ordenadas de mayor a menor cantidad
+        const secondaryDistribution = distributeSecondaryBands(
+            { green, yellow, red },
+            SCENE_CONFIG.bandDefaults.maxSecondaryBands
         );
 
         return {
@@ -1669,11 +2117,17 @@ class ChromaticDataEngine {
             dominantCount: maxCount,
             dominantKeys,
             predominantCategory,
-            normalizedIntensity,
+            normalizedIntensity: chromaticResult.normalizedIntensity,
+            intensityLevel: chromaticResult.intensityLevel,
+            activeColorCount: chromaticResult.activeColorCount,
             visualColor: chromaticResult.primaryColor,
             visualColorHex: `#${chromaticResult.primaryColor.getHexString()}`,
             componentColors: chromaticResult.componentColors,
-            isMixed: dominantKeys.length > 1,
+            isMixed: chromaticResult.activeColorCount > 1,
+            principalHeight: heightMetrics.principalHeight,
+            hoverElevation: heightMetrics.hoverElevation,
+            normalizedTotalHeight: heightMetrics.normalizedTotal,
+            secondaryDistribution,
             details: this.streetDetailsById[raw.id] || null
         };
     }
@@ -1690,29 +2144,8 @@ class ChromaticDataEngine {
         return color;
     }
 
-    computeVisualColor(counts, dominantKeys, intensity) {
-        if (dominantKeys.length === 1) {
-            const singleColor = this.getCategoryColorAtIntensity(dominantKeys[0], intensity);
-            return {
-                primaryColor: singleColor,
-                componentColors: [singleColor.clone()]
-            };
-        }
-
-        const activeKeys = dominantKeys.length > 0 ? dominantKeys : ["green", "yellow", "red"];
-        const componentColors = activeKeys.map((k) =>
-            this.getCategoryColorAtIntensity(k, Math.max(0.45, intensity))
-        );
-
-        const blended = this.mixColorsPerceptually(
-            componentColors,
-            activeKeys.map((k) => Math.max(1, counts[k]))
-        );
-
-        return {
-            primaryColor: blended,
-            componentColors
-        };
+    computeVisualColor(counts) {
+        return computeProportionalChromaticMix(counts);
     }
 
     mixColorsPerceptually(colors, weights) {
@@ -2194,7 +2627,21 @@ class BandLabel3D {
         const sampleCoord = isHorizontal ? this.config.position.x : this.config.position.z;
         const { elevationAtPoint, lateralAtPoint } = band.getDisplacementAtCoordinate(sampleCoord);
 
-        const baseTopY = band.config.thickness + this.config.separation;
+        // Asegurar que la etiqueta en reposo quede por encima de la altura propia de la banda
+        // y de cualquier banda perpendicular más alta que cruce en la posición del texto
+        let localSurfaceHeight = band.config.thickness;
+        if (band.perpendicularBands && band.perpendicularBands.length > 0) {
+            for (let i = 0; i < band.perpendicularBands.length; i++) {
+                const perp = band.perpendicularBands[i];
+                if (!band.doesPerpendicularBandIntersect(perp)) continue;
+                const perpCoord = isHorizontal ? perp.config.position.x : perp.config.position.z;
+                if (Math.abs(sampleCoord - perpCoord) <= (perp.config.width * 0.85 + this.config.textSize * 0.9)) {
+                    localSurfaceHeight = Math.max(localSurfaceHeight, perp.config.thickness);
+                }
+            }
+        }
+
+        const baseTopY = localSurfaceHeight + this.config.separation;
         const restY = Math.max(baseTopY, this.config.initialHeight);
         const extraHoverY = this.config.hoverHeight * orientationBlend;
 
@@ -2269,8 +2716,206 @@ class BandLabel3D {
 }
 
 // ==========================================================
-// 7. CLASE ELASTIC BAND (Filtros, Relieve, Destello Individual y Global)
+// 7. COMPOSICIÓN DE BANDAS SECUNDARIAS APILADAS (SecondaryBandStack3D)
+//    Y CLASE ELASTIC BAND (Altura proporcional, Mezcla y Descomposición en Hover)
 // ==========================================================
+
+class SecondaryBandStack3D {
+    constructor(band, parentGroup) {
+        this.band = band;
+        this.parentGroup = parentGroup;
+
+        const record = band.getDataRecord();
+        this.distribution = (record && record.secondaryDistribution)
+            ? record.secondaryDistribution
+            : distributeSecondaryBands(record || { green: 0, yellow: 0, red: 0 });
+
+        this.layers = this.distribution.layers || [];
+        this.layerItems = [];
+
+        this.group = new THREE.Group();
+        this.group.name = `${band.id}-secondary-stack`;
+        this.group.visible = false;
+        this.parentGroup.add(this.group);
+
+        this.silhouetteColor = new THREE.Color(SCENE_CONFIG.bandDefaults.silhouetteColor);
+        this.whiteReliefColor = new THREE.Color(0xffffff);
+
+        this.buildLayerMeshes();
+    }
+
+    buildLayerMeshes() {
+        if (this.layers.length === 0) return;
+
+        const { orientation, width, length, position } = this.band.config;
+        const isHorizontal = orientation === "horizontal";
+        const segments = SCENE_CONFIG.bandDefaults.lengthSegments;
+        const secWidth = width * (SCENE_CONFIG.bandDefaults.secondaryWidthRatio || 0.90);
+
+        const sizeX = isHorizontal ? length : secWidth;
+        const sizeZ = isHorizontal ? secWidth : length;
+        const segX = isHorizontal ? segments : 1;
+        const segZ = isHorizontal ? 1 : segments;
+
+        for (let k = 0; k < this.layers.length; k++) {
+            const layerDesc = this.layers[k];
+
+            // Geometría unitaria en Y [-0.5, +0.5] para posicionar con precisión caras superior e inferior
+            const geometry = new THREE.BoxGeometry(sizeX, 1.0, sizeZ, segX, 1, segZ);
+            const posAttr = geometry.attributes.position;
+            const restPositions = new Float32Array(posAttr.array.length);
+            restPositions.set(posAttr.array);
+
+            const colorArray = new Float32Array(posAttr.count * 3);
+            const baseColor = layerDesc.color.clone();
+            const topColor = baseColor.clone().offsetHSL(0, 0.02, 0.06);
+            const bottomColor = baseColor.clone().offsetHSL(0, 0.0, -0.04);
+
+            for (let i = 0; i < posAttr.count; i++) {
+                const idx3 = i * 3;
+                const ry = restPositions[idx3 + 1];
+                const vCol = ry >= 0 ? topColor : bottomColor;
+                colorArray[idx3] = vCol.r;
+                colorArray[idx3 + 1] = vCol.g;
+                colorArray[idx3 + 2] = vCol.b;
+            }
+
+            geometry.setAttribute("color", new THREE.BufferAttribute(colorArray, 3));
+
+            const material = new THREE.MeshStandardMaterial({
+                vertexColors: true,
+                roughness: 0.30,
+                metalness: 0.08,
+                emissive: baseColor.clone(),
+                emissiveIntensity: 0.16,
+                transparent: true,
+                opacity: 0.0
+            });
+
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.name = `${this.band.id}-sec-layer-${k + 1}-${layerDesc.categoryKey}`;
+            mesh.position.set(position.x, position.y, position.z);
+            mesh.castShadow = false;
+            mesh.receiveShadow = true;
+
+            // Desactivar raycasting en bandas secundarias para que jamás interfieran con hover/click/selección
+            mesh.raycast = () => {};
+
+            this.group.add(mesh);
+            this.layerItems.push({
+                index: k,
+                layerDesc,
+                geometry,
+                restPositions,
+                baseColor,
+                topColor,
+                bottomColor,
+                material,
+                mesh
+            });
+        }
+    }
+
+    update() {
+        const K = this.layerItems.length;
+        if (K === 0) return;
+
+        const maxElev = Math.max(0.01, this.band.config.maxElevation);
+        const elevRatio = THREE.MathUtils.clamp(this.band.currentElevation / maxElev, 0, 1);
+        const visBlend = this.band.filterVisibility;
+
+        if (this.band.currentElevation <= 0.012 || visBlend <= 0.01 || this.band.state === "IDLE") {
+            if (this.group.visible) {
+                this.group.visible = false;
+            }
+            return;
+        }
+
+        this.group.visible = true;
+
+        const { orientation, length, layerOffset = 0 } = this.band.config;
+        const isHorizontal = orientation === "horizontal";
+        const halfLen = length * 0.5;
+        const floorY = (SCENE_CONFIG.bandDefaults.secondaryFloorClearance || 0.05) + layerOffset;
+
+        const maxThick = SCENE_CONFIG.bandDefaults.secondaryThicknessMax || 0.16;
+        const minThick = SCENE_CONFIG.bandDefaults.secondaryThicknessMin || 0.12;
+        const idealThickness = THREE.MathUtils.lerp(maxThick, minThick, Math.max(0, K - 1) / 8);
+
+        const pulseWave = Math.sin(this.band.continuousGlowPhase) * 0.5 + 0.5;
+        const emissiveBoost =
+            (0.15 + 0.12 * this.band.hoverVisualBlend + 0.14 * this.band.continuousGlowBlend * pulseWave) *
+            visBlend;
+
+        for (let k = 0; k < K; k++) {
+            const item = this.layerItems[k];
+            // Fracción vertical uniforme de arriba (k=0, justo debajo de la banda principal) hacia abajo (k=K-1)
+            const slotFraction = (K - k) / (K + 1);
+
+            // Despliegue y retracción progresiva en cascada suave
+            const staggerDelay = (k / Math.max(1, K)) * 0.16;
+            const rawLayerT = THREE.MathUtils.clamp(
+                (elevRatio - staggerDelay * 0.38) / Math.max(0.01, 1 - staggerDelay * 0.38),
+                0,
+                1
+            );
+            const layerDeploy = rawLayerT * rawLayerT * (3 - 2 * rawLayerT);
+
+            const opacityEnvelope = THREE.MathUtils.smoothstep(elevRatio, 0.02, 0.28);
+            item.material.opacity = THREE.MathUtils.clamp(opacityEnvelope * layerDeploy * visBlend * 0.96, 0, 0.96);
+            item.material.emissiveIntensity = emissiveBoost;
+
+            const posAttr = item.geometry.attributes.position;
+            const arr = posAttr.array;
+            const rest = item.restPositions;
+
+            for (let i = 0; i < arr.length; i += 3) {
+                const rx = rest[i];
+                const ry = rest[i + 1];
+                const rz = rest[i + 2];
+
+                const uCoord = isHorizontal ? rx : rz;
+                const s = THREE.MathUtils.clamp((uCoord + halfLen) / length, 0, 1);
+                const archProfile = this.band.computeArchProfileAtNormalizedS(s);
+
+                // Límite inferior de la banda principal elevada en la coordenada longitudinal s
+                const principalUndersideY = layerOffset + this.band.currentElevation * archProfile;
+                const availSpan = Math.max(0, principalUndersideY - floorY);
+                const slotStep = availSpan / (K + 1);
+
+                // Posición vertical objetivo dentro del espacio entre la superficie y la banda principal
+                const deployedCenterY = floorY + slotFraction * availSpan;
+                const collapsedOriginY = Math.max(floorY, principalUndersideY - 0.015 * (k + 1));
+                const centerY = THREE.MathUtils.lerp(collapsedOriginY, deployedCenterY, layerDeploy);
+
+                // Grosor local acotado a <= 54% del paso vertical para garantizar separación uniforme sin solapamiento
+                const localThickness = Math.min(idealThickness, slotStep * 0.54) * layerDeploy;
+                const halfLocalThick = localThickness * 0.5;
+                const vy = Math.max(
+                    floorY * 0.75,
+                    centerY + (ry >= 0 ? halfLocalThick : -halfLocalThick)
+                );
+
+                // Alineación horizontal/vertical solidaria con la deformación lateral de la banda principal
+                const dLat = this.band.currentLateral * archProfile;
+
+                arr[i] = isHorizontal ? rx : rx + dLat;
+                arr[i + 1] = vy;
+                arr[i + 2] = isHorizontal ? rz + dLat : rz;
+            }
+
+            posAttr.needsUpdate = true;
+            item.geometry.computeVertexNormals();
+        }
+    }
+
+    reset() {
+        this.group.visible = false;
+        for (let k = 0; k < this.layerItems.length; k++) {
+            this.layerItems[k].material.opacity = 0.0;
+        }
+    }
+}
 
 class ElasticBand {
     constructor(config, parentGroup, dataEngine) {
@@ -2281,6 +2926,17 @@ class ElasticBand {
         this.dataEngine = dataEngine;
         this.label = null;
         this.perpendicularBands = [];
+
+        // Sincronizar automáticamente altura física en reposo y elevación de hover con el total real de respuestas
+        const record = this.getDataRecord();
+        if (record) {
+            if (typeof record.principalHeight === "number") {
+                this.config.thickness = record.principalHeight;
+            }
+            if (typeof record.hoverElevation === "number") {
+                this.config.maxElevation = record.hoverElevation;
+            }
+        }
 
         this.state = "IDLE";
         this.isHovered = false;
@@ -2316,6 +2972,7 @@ class ElasticBand {
         this.whiteReliefColor = new THREE.Color(0xffffff);
 
         this.buildGeometry();
+        this.secondaryStack = new SecondaryBandStack3D(this, this.parentGroup);
     }
 
     getDataRecord() {
@@ -2325,6 +2982,9 @@ class ElasticBand {
     setPerpendicularBands(perpBands) {
         this.perpendicularBands = perpBands;
         this.applyVertexChromaticProfile();
+        if (this.label) {
+            this.label.updateTransform(null, 0);
+        }
     }
 
     setFilterEnabled(enabled) {
@@ -2541,11 +3201,8 @@ class ElasticBand {
             const vCoord = isHorizontal ? rz : rx;
             const s = THREE.MathUtils.clamp((uCoord + halfLen) / length, 0, 1);
 
-            if (record.isMixed && record.componentColors.length >= 2) {
-                tempColor.copy(record.componentColors[0]).lerp(record.componentColors[1], s);
-            } else {
-                tempColor.copy(baseColor);
-            }
+            // Color propio de la banda principal derivado de la mezcla proporcional completa de respuestas
+            tempColor.copy(baseColor);
 
             tempColor.lerp(this.silhouetteColor, 1.0 - myVis);
 
@@ -2838,6 +3495,9 @@ class ElasticBand {
 
         if (needsColorUpdate) {
             this.applyVertexChromaticProfile();
+            if (this.secondaryStack) {
+                this.secondaryStack.update();
+            }
         }
 
         if (this.label) {
@@ -2897,6 +3557,10 @@ class ElasticBand {
             auraArr[j + 2] = isHorizontal ? arz + dLat : arz;
         }
         auraPos.needsUpdate = true;
+
+        if (this.secondaryStack) {
+            this.secondaryStack.update();
+        }
     }
 
     resetToRest() {
@@ -2919,6 +3583,10 @@ class ElasticBand {
         const auraPos = this.auraGeo.attributes.position;
         auraPos.array.set(this.auraRestPositions);
         auraPos.needsUpdate = true;
+
+        if (this.secondaryStack) {
+            this.secondaryStack.reset();
+        }
 
         this.geometry.computeVertexNormals();
         this.geometry.computeBoundingBox();
@@ -3156,10 +3824,10 @@ function createBuenosAiresModel(scene) {
             name: rec.name,
             orientation: rec.type,
             width: bandDef.width,
-            thickness: bandDef.thickness,
+            thickness: rec.principalHeight || bandDef.thickness,
             length: len,
             position: { x: xPos, y: 0, z: zPos },
-            maxElevation: bandDef.maxElevation,
+            maxElevation: rec.hoverElevation || bandDef.maxElevation,
             animationSpeed: bandDef.animationSpeed,
             returnDuration: bandDef.returnDuration,
             maxLateralOffset: bandDef.maxLateralOffset,
@@ -3419,10 +4087,10 @@ function createValparaisoModel(scene) {
             name: rec.name,
             orientation: rec.type,
             width: g.width || bandDef.width,
-            thickness: bandDef.thickness,
+            thickness: rec.principalHeight || bandDef.thickness,
             length: g.length,
             position: { x: g.x, y: 0, z: g.z },
-            maxElevation: bandDef.maxElevation,
+            maxElevation: rec.hoverElevation || bandDef.maxElevation,
             animationSpeed: bandDef.animationSpeed,
             returnDuration: bandDef.returnDuration,
             maxLateralOffset: bandDef.maxLateralOffset,
@@ -4480,6 +5148,14 @@ const SCENE_REGISTRY = {
     filterController: null,
     interactionManager: null,
     cameraController: null,
+    compositionModule: {
+        computeGlobalBandTotalScale,
+        computePrincipalBandHeight,
+        computeSingleColorIntensity,
+        computeProportionalChromaticMix,
+        orderSecondaryColorGroups,
+        distributeSecondaryBands
+    },
 
     getActiveModel() {
         return this.models[this.activeModelKey] || null;
